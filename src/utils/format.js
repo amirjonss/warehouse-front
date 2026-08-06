@@ -1,0 +1,129 @@
+/** Форматирование под демо: деньги в двух валютах, даты, количества. */
+
+const MS_DAY = 86_400_000
+
+/**
+ * Валюта учёта — сум. Все итоги и отчёты приводятся к ней.
+ * Доллар живёт как валюта цены и валюта долга, но не как валюта отчётности.
+ */
+export const BASE_CURRENCY = 'UZS'
+
+export const CURRENCIES = {
+  UZS: { code: 'UZS', suffix: 'сўм', decimals: 0, step: 1000 },
+  USD: { code: 'USD', suffix: '$', decimals: 2, step: 0.5 },
+}
+
+export const currencyLabel = (code) => CURRENCIES[code]?.suffix ?? code
+
+/**
+ * money(1250000)                          → '1 250 000 сўм'
+ * money(43.5, 'USD')                      → '43,50 $'
+ * money(1250000, { withCurrency: false }) → '1 250 000'
+ *
+ * Второй аргумент принимает и код валюты, и объект опций: в большинстве мест
+ * валюта — сум, и указывать её каждый раз было бы шумом.
+ */
+export function money(value, currency = BASE_CURRENCY, options = {}) {
+  if (typeof currency === 'object' && currency !== null) {
+    options = currency
+    currency = BASE_CURRENCY
+  }
+  const { withCurrency = true } = options
+  const cur = CURRENCIES[currency] ?? CURRENCIES[BASE_CURRENCY]
+  const n = Number(value) || 0
+  const s = n.toLocaleString('ru-RU', {
+    minimumFractionDigits: cur.decimals,
+    maximumFractionDigits: cur.decimals,
+  })
+  return withCurrency ? `${s} ${cur.suffix}` : s
+}
+
+/** Короткая запись для плиток: 12,4 млн / 4,4 тыс $ */
+export function moneyShort(value, currency = BASE_CURRENCY) {
+  const n = Number(value) || 0
+  const tail = currency === BASE_CURRENCY ? '' : ` ${currencyLabel(currency)}`
+  // «173 млн» читается лучше, чем «173,0 млн» — ноль после запятой не нужен
+  const dec = (x) => (Number.isInteger(+x.toFixed(1)) ? String(Math.round(x)) : x.toFixed(1).replace('.', ','))
+  if (Math.abs(n) >= 1_000_000_000) return `${dec(n / 1_000_000_000)} млрд${tail}`
+  if (Math.abs(n) >= 1_000_000) return `${dec(n / 1_000_000)} млн${tail}`
+  if (Math.abs(n) >= 10_000) return `${Math.round(n / 1000)} тыс${tail}`
+  return money(n, currency)
+}
+
+/** Округление по правилам валюты: сум — до целого, доллар — до цента. */
+export function roundMoney(value, currency = BASE_CURRENCY) {
+  const dec = CURRENCIES[currency]?.decimals ?? 0
+  const k = 10 ** dec
+  return Math.round((Number(value) || 0) * k) / k
+}
+
+/** Количество: до 2 знаков, но без лишних нулей. */
+export function qty(value) {
+  const n = Number(value) || 0
+  const s = Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
+  return s.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
+export const UNITS = {
+  kg: { short: 'кг', full: 'килограмм' },
+  pcs: { short: 'шт', full: 'штука' },
+  l: { short: 'л', full: 'литр' },
+}
+
+export function unitLabel(unit) {
+  return UNITS[unit]?.short ?? unit
+}
+
+/** '2026-07-26' -> '26.07.2026' */
+export function date(value) {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/** '26 июл' — для осей графиков */
+export function dateShort(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '')
+}
+
+export function dateTime(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  return `${date(d)} ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+}
+
+export function toISODate(d = new Date()) {
+  const dt = d instanceof Date ? d : new Date(d)
+  return dt.toISOString().slice(0, 10)
+}
+
+export function addDays(d, days) {
+  const dt = d instanceof Date ? new Date(d) : new Date(d)
+  dt.setDate(dt.getDate() + days)
+  return dt
+}
+
+/** Сколько дней осталось до даты (может быть отрицательным). */
+export function daysLeft(isoDate, from = new Date()) {
+  const a = new Date(isoDate)
+  a.setHours(0, 0, 0, 0)
+  const b = new Date(from)
+  b.setHours(0, 0, 0, 0)
+  return Math.round((a - b) / MS_DAY)
+}
+
+/** Статус остатка относительно минимума. */
+export function stockStatus(stock, minStock) {
+  if (stock <= 0) return { key: 'out', label: 'Нет в наличии', cls: 'bg-red-100 text-red-700' }
+  if (stock <= minStock) return { key: 'low', label: 'Мало', cls: 'bg-amber-100 text-amber-700' }
+  return { key: 'ok', label: 'В наличии', cls: 'bg-green-100 text-green-700' }
+}
+
+export function pluralRu(n, forms) {
+  const a = Math.abs(n) % 100
+  const b = a % 10
+  if (a > 10 && a < 20) return forms[2]
+  if (b > 1 && b < 5) return forms[1]
+  if (b === 1) return forms[0]
+  return forms[2]
+}
