@@ -123,16 +123,22 @@ function numberInWords(n) {
 </script>
 
 <template>
-  <div v-if="loading" class="p-8 text-sm text-slate-500">Загрузка…</div>
-  <div v-else-if="sale" class="min-h-screen bg-slate-100 p-4 sm:p-8">
+  <!--
+    Накладная — печатный документ: должна выглядеть как бумага независимо от того,
+    включена ли тёмная тема в приложении. Без dark:text-slate-900 на корне текст без
+    собственного цвета наследует dark:text-slate-200 от <body> и становится нечитаемым
+    на белом листе.
+  -->
+  <div v-if="loading" class="p-8 text-sm text-slate-500 dark:bg-slate-100">Загрузка…</div>
+  <div v-else-if="sale" class="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-8 dark:bg-slate-100 dark:text-slate-900">
     <div class="no-print mx-auto mb-4 flex max-w-3xl gap-2">
       <button class="btn-primary" @click="doPrint">
         <AppIcon name="print" :size="17" /> Печать
       </button>
-      <button class="btn-ghost" @click="doClose">Закрыть</button>
+      <button class="btn-ghost dark:border-slate-300 dark:bg-white dark:text-slate-700 dark:hover:bg-slate-50" @click="doClose">Закрыть</button>
     </div>
 
-    <div class="print-area mx-auto max-w-3xl bg-white p-6 shadow-sm sm:p-10">
+    <div class="print-area mx-auto max-w-3xl bg-white p-6 shadow-sm sm:p-10 dark:bg-white">
       <div class="flex items-start justify-between border-b-2 border-slate-800 pb-4">
         <div>
           <div class="text-lg font-bold text-slate-900">Оптовый склад «Wirehouse»</div>
@@ -236,5 +242,7 @@ function numberInWords(n) {
     </div>
   </div>
 
-  <EmptyState v-else title="Накладная не найдена" />
+  <div v-else class="min-h-screen bg-slate-100 dark:bg-slate-100">
+    <EmptyState title="Накладная не найдена" />
+  </div>
 </template>

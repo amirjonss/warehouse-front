@@ -114,9 +114,9 @@ export function daysLeft(isoDate, from = new Date()) {
 
 /** Статус остатка относительно минимума. */
 export function stockStatus(stock, minStock) {
-  if (stock <= 0) return { key: 'out', label: 'Нет в наличии', cls: 'bg-red-100 text-red-700' }
-  if (stock <= minStock) return { key: 'low', label: 'Мало', cls: 'bg-amber-100 text-amber-700' }
-  return { key: 'ok', label: 'В наличии', cls: 'bg-green-100 text-green-700' }
+  if (stock <= 0) return { key: 'out', label: 'Нет в наличии', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }
+  if (stock <= minStock) return { key: 'low', label: 'Мало', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' }
+  return { key: 'ok', label: 'В наличии', cls: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' }
 }
 
 export function pluralRu(n, forms) {

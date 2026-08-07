@@ -80,31 +80,31 @@ const totals = computed(() => ({
   <div class="space-y-4">
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Позиций в наличии</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Позиций в наличии</div>
         <div class="mt-1 text-lg font-semibold">{{ totals.positions }}</div>
       </div>
       <div class="card-pad cursor-pointer" @click="tab = 'products'; onlyLow = true">
-        <div class="text-xs text-slate-500">На исходе</div>
-        <div class="mt-1 text-lg font-semibold" :class="totals.low ? 'text-amber-600' : ''">{{ totals.low }}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">На исходе</div>
+        <div class="mt-1 text-lg font-semibold" :class="totals.low ? 'text-amber-600 dark:text-amber-400' : ''">{{ totals.low }}</div>
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <div class="flex gap-1 rounded-lg bg-slate-100 p-1">
-        <button class="rounded-md px-3 py-1.5 text-sm font-medium" :class="tab === 'products' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="tab = 'products'">
+      <div class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+        <button class="rounded-md px-3 py-1.5 text-sm font-medium" :class="tab === 'products' ? 'bg-white dark:bg-slate-900 shadow-sm' : 'text-slate-500 dark:text-slate-400'" @click="tab = 'products'">
           По товарам
         </button>
-        <button v-if="auth.can('batches')" class="rounded-md px-3 py-1.5 text-sm font-medium" :class="tab === 'batches' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="tab = 'batches'">
+        <button v-if="auth.can('batches')" class="rounded-md px-3 py-1.5 text-sm font-medium" :class="tab === 'batches' ? 'bg-white dark:bg-slate-900 shadow-sm' : 'text-slate-500 dark:text-slate-400'" @click="tab = 'batches'">
           По партиям
         </button>
       </div>
       <input v-model="search" class="input max-w-xs" placeholder="Поиск" />
-      <label v-if="tab === 'products'" class="flex items-center gap-1.5 text-sm text-slate-600">
-        <input v-model="onlyLow" type="checkbox" class="h-4 w-4 rounded border-slate-300" /> Только на исходе
+      <label v-if="tab === 'products'" class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
+        <input v-model="onlyLow" type="checkbox" class="h-4 w-4 rounded border-slate-300 bg-white text-indigo-600 dark:border-slate-700 dark:bg-slate-800" /> Только на исходе
       </label>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="tab === 'products'" class="card overflow-hidden">
       <table v-if="filteredProducts.length" class="w-full">
@@ -118,8 +118,8 @@ const totals = computed(() => ({
         <tbody>
           <tr v-for="r in filteredProducts" :key="r.id" class="table-row">
             <td class="td">
-              <RouterLink :to="`/products/${r.id}`" class="font-medium text-slate-800 hover:text-blue-600">{{ r.name }}</RouterLink>
-              <div class="text-xs text-slate-400">{{ r.sku }}</div>
+              <RouterLink :to="`/products/${r.id}`" class="font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">{{ r.name }}</RouterLink>
+              <div class="text-xs text-slate-400 dark:text-slate-500">{{ r.sku }}</div>
             </td>
             <td class="td tabnum">{{ qty(r.remainingQty) }} {{ unitLabel(r.unit) }}</td>
             <td class="td">
@@ -147,12 +147,12 @@ const totals = computed(() => ({
         </thead>
         <tbody>
           <tr v-for="b in filteredBatches" :key="b.id" class="table-row">
-            <td class="td font-medium text-slate-800">{{ b.number }}</td>
-            <td class="td text-slate-500">{{ b.productName }}</td>
-            <td class="td text-slate-500">{{ date(b.receivedAt) }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ b.productName }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }}</td>
             <td class="td tabnum">{{ qty(b.stock) }}</td>
             <td v-if="auth.can('prices.purchase')" class="td tabnum">{{ b.purchasePrice }} {{ b.currency }}</td>
-            <td class="td text-slate-500">{{ b.supplierName }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ b.supplierName }}</td>
           </tr>
         </tbody>
       </table>

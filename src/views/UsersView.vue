@@ -78,24 +78,24 @@ function copyPassword() {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-sm text-slate-500">Всего сотрудников: {{ list.length }}</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400">Всего сотрудников: {{ list.length }}</div>
       <button class="btn-primary btn-sm" @click="openNew">
         <AppIcon name="plus" :size="16" /> Добавить сотрудника
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="list.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="u in list" :key="u.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="truncate font-medium text-slate-800">{{ u.email }}</div>
-            <div class="text-xs text-slate-500">{{ ROLE_TITLES[roleOf(u)] ?? '—' }}</div>
+            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ u.email }}</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ ROLE_TITLES[roleOf(u)] ?? '—' }}</div>
           </div>
         </div>
-        <div class="mt-2 text-xs text-slate-400">Создан {{ date(u.createdAt) }}</div>
-        <button class="btn-ghost btn-sm mt-3 w-full text-red-600" @click="block(u)">Заблокировать</button>
+        <div class="mt-2 text-xs text-slate-400 dark:text-slate-500">Создан {{ date(u.createdAt) }}</div>
+        <button class="btn-ghost btn-sm mt-3 w-full text-red-600 dark:text-red-400" @click="block(u)">Заблокировать</button>
       </div>
     </div>
     <EmptyState v-else-if="!loading" icon="shield" title="Сотрудников пока нет" />
@@ -114,24 +114,24 @@ function copyPassword() {
               v-for="(title, key) in ROLE_TITLES"
               :key="key"
               class="btn-ghost btn-sm flex-1"
-              :class="{ 'border-blue-500 bg-blue-50 text-blue-700': form.role === key }"
+              :class="{ 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-500/10 dark:text-indigo-300': form.role === key }"
               @click="form.role = key"
             >
               {{ title }}
             </button>
           </div>
         </div>
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
+        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
 
       <div v-else class="space-y-3">
-        <p class="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p class="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
           Аккаунт создан. Пароль показывается один раз — сохраните и передайте сотруднику.
         </p>
-        <div class="rounded-lg border border-slate-200 p-3">
-          <div class="text-xs text-slate-500">Email</div>
+        <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+          <div class="text-xs text-slate-500 dark:text-slate-400">Email</div>
           <div class="font-mono text-sm">{{ created.email }}</div>
-          <div class="mt-2 text-xs text-slate-500">Пароль</div>
+          <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">Пароль</div>
           <div class="flex items-center gap-2">
             <div class="font-mono text-sm">{{ created.password }}</div>
             <button class="btn-ghost btn-sm" @click="copyPassword"><AppIcon name="download" :size="14" /> Копировать</button>

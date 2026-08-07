@@ -19,10 +19,10 @@ const to = ref('')
 const limit = ref(60)
 
 const TYPE = {
-  in: { label: 'Приход', cls: 'bg-emerald-100 text-emerald-700' },
-  out: { label: 'Продажа', cls: 'bg-blue-100 text-blue-700' },
-  writeoff: { label: 'Списание', cls: 'bg-red-100 text-red-700' },
-  adjust: { label: 'Корректировка', cls: 'bg-slate-100 text-slate-600' },
+  in: { label: 'Приход', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' },
+  out: { label: 'Продажа', cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400' },
+  writeoff: { label: 'Списание', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' },
+  adjust: { label: 'Корректировка', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400' },
 }
 
 async function load() {
@@ -80,10 +80,10 @@ function setToday() {
       <input v-model="to" type="date" class="input max-w-[150px]" />
       <button class="btn-ghost btn-sm" @click="setToday">Сегодня</button>
       <button class="btn-ghost btn-sm" @click="resetFilters">Сбросить</button>
-      <span class="ml-auto text-sm text-slate-500">Найдено: {{ filtered.length }}</span>
+      <span class="ml-auto text-sm text-slate-500 dark:text-slate-400">Найдено: {{ filtered.length }}</span>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="shown.length" class="w-full">
@@ -99,12 +99,12 @@ function setToday() {
         </thead>
         <tbody>
           <tr v-for="m in shown" :key="m.id" class="table-row">
-            <td class="td text-slate-500">{{ dateTime(m.occurredAt) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ dateTime(m.occurredAt) }}</td>
             <td class="td"><span class="badge" :class="TYPE[m.type]?.cls">{{ TYPE[m.type]?.label ?? m.type }}</span></td>
-            <td class="td text-slate-600">{{ m.docNumber }}</td>
-            <td class="td text-slate-700">{{ productName(m.product) }}</td>
-            <td class="td text-slate-500">{{ batchNumber(m.batch) }}</td>
-            <td class="td tabnum font-medium" :class="Number(m.quantity) < 0 ? 'text-red-600' : 'text-emerald-600'">
+            <td class="td text-slate-600 dark:text-slate-400">{{ m.docNumber }}</td>
+            <td class="td text-slate-700 dark:text-slate-300">{{ productName(m.product) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ batchNumber(m.batch) }}</td>
+            <td class="td tabnum font-medium" :class="Number(m.quantity) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
               {{ Number(m.quantity) > 0 ? '+' : '' }}{{ qty(m.quantity) }}
             </td>
           </tr>

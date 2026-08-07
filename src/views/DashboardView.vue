@@ -97,9 +97,9 @@ const recentSales = computed(() =>
 </script>
 
 <template>
-  <div v-if="loading" class="text-sm text-slate-500">Загрузка…</div>
+  <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">Загрузка…</div>
   <div v-else class="space-y-4">
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard label="Выручка сегодня" :value="revenueLabel" :hint="`${todaySales.length} отгрузок`" icon="truck" tone="blue" to="/sales" />
@@ -110,13 +110,13 @@ const recentSales = computed(() =>
 
     <div class="card-pad">
       <div class="mb-3 flex items-center justify-between">
-        <div class="text-sm font-semibold text-slate-800">Продажи по дням</div>
-        <div class="flex gap-1 rounded-lg bg-slate-100 p-1">
+        <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Продажи по дням</div>
+        <div class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
           <button
             v-for="d in [7, 14, 30]"
             :key="d"
             class="rounded-md px-2.5 py-1 text-xs font-medium"
-            :class="period === d ? 'bg-white shadow-sm' : 'text-slate-500'"
+            :class="period === d ? 'bg-white dark:bg-slate-900 shadow-sm' : 'text-slate-500 dark:text-slate-400'"
             @click="period = d"
           >
             {{ d }}д
@@ -128,22 +128,22 @@ const recentSales = computed(() =>
 
     <div class="grid gap-4 lg:grid-cols-2">
       <div class="card-pad">
-        <div class="mb-2 text-sm font-semibold text-slate-800">Нет в наличии</div>
+        <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Нет в наличии</div>
         <div v-if="lowStock.length" class="space-y-1.5">
-          <RouterLink v-for="r in lowStock" :key="r.id" :to="`/products/${r.id}`" class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50">
-            <span class="text-slate-700">{{ r.name }}</span>
-            <span class="tabnum text-red-600">{{ r.remainingQty }}</span>
+          <RouterLink v-for="r in lowStock" :key="r.id" :to="`/products/${r.id}`" class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+            <span class="text-slate-700 dark:text-slate-300">{{ r.name }}</span>
+            <span class="tabnum text-red-600 dark:text-red-400">{{ r.remainingQty }}</span>
           </RouterLink>
         </div>
         <EmptyState v-else icon="check" title="Всё в наличии" />
       </div>
 
       <div class="card-pad">
-        <div class="mb-2 text-sm font-semibold text-slate-800">Последние отгрузки</div>
+        <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Последние отгрузки</div>
         <div v-if="recentSales.length" class="space-y-1.5">
-          <RouterLink v-for="s in recentSales" :key="s.id" :to="`/sales?doc=${s.id}`" class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50">
-            <span class="min-w-0 truncate text-slate-700">{{ clientName(s.customer) }} · {{ s.number }}</span>
-            <span class="tabnum shrink-0 text-slate-500">{{ date(s.docDate) }}</span>
+          <RouterLink v-for="s in recentSales" :key="s.id" :to="`/sales?doc=${s.id}`" class="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+            <span class="min-w-0 truncate text-slate-700 dark:text-slate-300">{{ clientName(s.customer) }} · {{ s.number }}</span>
+            <span class="tabnum shrink-0 text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</span>
           </RouterLink>
         </div>
         <EmptyState v-else icon="truck" title="Отгрузок пока нет" />

@@ -82,19 +82,19 @@ async function remove(r) {
 
 <template>
   <div class="space-y-4">
-    <p class="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+    <p class="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
       Курс здесь — справочный, для ориентира. Он никуда не подставляется автоматически: при
       продаже и оплате курс вводится вручную на каждой строке/платеже.
     </p>
 
     <div class="flex items-center justify-between">
-      <div class="text-sm text-slate-500">Записей: {{ list.length }}</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400">Записей: {{ list.length }}</div>
       <button v-if="auth.can('exchangeRates')" class="btn-primary btn-sm" @click="openNew">
         <AppIcon name="plus" :size="16" /> Добавить курс
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="list.length" class="w-full">
@@ -108,7 +108,7 @@ async function remove(r) {
         </thead>
         <tbody>
           <tr v-for="r in list" :key="r.rateDate" class="table-row">
-            <td class="td font-medium text-slate-800">{{ date(r.rateDate) }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ date(r.rateDate) }}</td>
             <td class="td tabnum">{{ Number(r.rateBuy).toLocaleString('ru-RU') }}</td>
             <td class="td tabnum">{{ Number(r.rateSell).toLocaleString('ru-RU') }}</td>
             <td class="td text-right">
@@ -137,7 +137,7 @@ async function remove(r) {
           <label class="label">Курс продажи</label>
           <input v-model="form.rateSell" type="number" step="0.0001" class="input" />
         </div>
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
+        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
       <template #footer>
         <button class="btn-ghost" @click="modal = false">Отмена</button>

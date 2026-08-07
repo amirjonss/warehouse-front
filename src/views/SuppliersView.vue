@@ -98,25 +98,25 @@ async function remove(s) {
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="filtered().length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="s in filtered()" :key="s.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="truncate font-medium text-slate-800">{{ s.name }}</div>
-            <div v-if="!s.isActive" class="badge mt-1 bg-slate-100 text-slate-500">не активен</div>
+            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ s.name }}</div>
+            <div v-if="!s.isActive" class="badge mt-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">не активен</div>
           </div>
           <button class="btn-ghost btn-sm shrink-0" @click="openEdit(s)"><AppIcon name="edit" :size="14" /></button>
         </div>
-        <div v-if="s.contact" class="mt-2 text-sm text-slate-600">{{ s.contact }}</div>
-        <div v-if="s.phone" class="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+        <div v-if="s.contact" class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ s.contact }}</div>
+        <div v-if="s.phone" class="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <AppIcon name="phone" :size="14" /> {{ s.phone }}
         </div>
-        <div v-if="s.address" class="mt-1 flex items-start gap-1.5 text-sm text-slate-500">
+        <div v-if="s.address" class="mt-1 flex items-start gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <AppIcon name="pin" :size="14" class="mt-0.5 shrink-0" /> {{ s.address }}
         </div>
-        <button class="btn-ghost btn-sm mt-3 w-full text-red-600" @click="remove(s)">Удалить</button>
+        <button class="btn-ghost btn-sm mt-3 w-full text-red-600 dark:text-red-400" @click="remove(s)">Удалить</button>
       </div>
     </div>
     <EmptyState v-else-if="!loading" icon="truck" title="Поставщиков пока нет" />
@@ -141,11 +141,11 @@ async function remove(s) {
           <label class="label">Адрес</label>
           <input v-model="form.address" class="input" />
         </div>
-        <label class="flex items-center gap-2 text-sm text-slate-700">
-          <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded border-slate-300 bg-white text-indigo-600 dark:border-slate-700 dark:bg-slate-800" />
           Активен
         </label>
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
+        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
       <template #footer>
         <button class="btn-ghost" @click="modal = false">Отмена</button>

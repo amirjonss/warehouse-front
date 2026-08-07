@@ -74,7 +74,7 @@ const filtered = computed(() =>
       <RouterLink to="/receipts/new" class="btn-primary btn-sm ml-auto">Новый приход</RouterLink>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="filtered.length" class="w-full">
@@ -90,15 +90,15 @@ const filtered = computed(() =>
         </thead>
         <tbody>
           <tr v-for="r in filtered" :key="r.id" class="table-row">
-            <td class="td font-medium text-slate-800">{{ r.number }}</td>
-            <td class="td text-slate-500">{{ date(r.docDate) }}</td>
-            <td class="td text-slate-600">{{ supplierName(r.supplier) }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ r.number }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ date(r.docDate) }}</td>
+            <td class="td text-slate-600 dark:text-slate-400">{{ supplierName(r.supplier) }}</td>
             <td class="td tabnum">
               <template v-if="Number(r.totalUsd) > 0">{{ money(r.totalUsd, 'USD') }}</template>
               <template v-if="Number(r.totalUsd) > 0 && Number(r.totalUzs) > 0"> + </template>
               <template v-if="Number(r.totalUzs) > 0">{{ money(r.totalUzs, 'UZS') }}</template>
             </td>
-            <td class="td"><span class="badge bg-slate-100 text-slate-600">{{ STATUS[r.status] }}</span></td>
+            <td class="td"><span class="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ STATUS[r.status] }}</span></td>
             <td class="td text-right">
               <button class="btn-ghost btn-sm" @click="opened = r">Открыть</button>
             </td>
@@ -111,7 +111,7 @@ const filtered = computed(() =>
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + supplierName(opened.supplier)" @close="opened = null">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-left text-xs text-slate-500">
+          <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
             <th class="pb-2">Товар</th>
             <th class="pb-2">Кол-во</th>
             <th class="pb-2">Цена</th>
@@ -119,7 +119,7 @@ const filtered = computed(() =>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="i in itemsByReceipt.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100">
+          <tr v-for="i in itemsByReceipt.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
             <td class="py-1.5">{{ productName(i.product) }}</td>
             <td class="py-1.5 tabnum">{{ i.quantity }}</td>
             <td class="py-1.5 tabnum">{{ i.price }} {{ i.currency }}</td>

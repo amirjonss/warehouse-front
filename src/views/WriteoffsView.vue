@@ -158,13 +158,13 @@ function lossValue(item) {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-sm text-slate-500">Всего списаний: {{ list.length }}</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400">Всего списаний: {{ list.length }}</div>
       <button class="btn-primary btn-sm" @click="openNew">
         <AppIcon name="plus" :size="16" /> Новое списание
       </button>
     </div>
 
-    <p v-if="error && !modal" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error && !modal" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="list.length" class="w-full">
@@ -180,11 +180,11 @@ function lossValue(item) {
         </thead>
         <tbody>
           <tr v-for="w in list" :key="w.id" class="table-row">
-            <td class="td font-medium text-slate-800">{{ w.number }}</td>
-            <td class="td text-slate-500">{{ date(w.docDate) }}</td>
-            <td class="td text-slate-600">{{ w.reason }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ w.number }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ date(w.docDate) }}</td>
+            <td class="td text-slate-600 dark:text-slate-400">{{ w.reason }}</td>
             <td class="td tabnum">{{ (itemsByWriteoff.get(String(w.id)) ?? []).length }}</td>
-            <td class="td"><span class="badge bg-slate-100 text-slate-600">{{ STATUS[w.status] }}</span></td>
+            <td class="td"><span class="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ STATUS[w.status] }}</span></td>
             <td class="td text-right">
               <button class="btn-ghost btn-sm" @click="opened = w">Открыть</button>
             </td>
@@ -197,14 +197,14 @@ function lossValue(item) {
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + opened.reason" @close="opened = null">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-left text-xs text-slate-500">
+          <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
             <th class="pb-2">Товар</th>
             <th class="pb-2">Партия</th>
             <th class="pb-2">Кол-во</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="i in itemsByWriteoff.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100">
+          <tr v-for="i in itemsByWriteoff.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
             <td class="py-1.5">{{ productName(i.product) }}</td>
             <td class="py-1.5">{{ batchNumber(i.batch) }}</td>
             <td class="py-1.5 tabnum">{{ i.quantity }}</td>
@@ -217,7 +217,7 @@ function lossValue(item) {
     </ModalDialog>
 
     <ModalDialog v-if="modal" title="Новое списание" width="max-w-2xl" @close="modal = false">
-      <p v-if="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ error }}</p>
+      <p v-if="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
       <div v-if="!draft" class="space-y-3">
         <div>
@@ -262,7 +262,7 @@ function lossValue(item) {
 
         <table v-if="items.length" class="w-full text-sm">
           <thead>
-            <tr class="text-left text-xs text-slate-500">
+            <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
               <th class="pb-2">Товар</th>
               <th class="pb-2">Партия</th>
               <th class="pb-2">Кол-во</th>
@@ -271,7 +271,7 @@ function lossValue(item) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in items" :key="i.id" class="border-t border-slate-100">
+            <tr v-for="i in items" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
               <td class="py-1.5">{{ productName(i.product) }}</td>
               <td class="py-1.5">{{ batchNumber(i.batch) }}</td>
               <td class="py-1.5 tabnum">{{ i.quantity }}</td>

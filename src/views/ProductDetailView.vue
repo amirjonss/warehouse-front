@@ -21,10 +21,10 @@ const loading = ref(true)
 const error = ref('')
 
 const MOVE = {
-  in: { label: 'Приход', cls: 'bg-emerald-100 text-emerald-700', sign: '+' },
-  out: { label: 'Продажа', cls: 'bg-blue-100 text-blue-700', sign: '-' },
-  writeoff: { label: 'Списание', cls: 'bg-red-100 text-red-700', sign: '-' },
-  adjust: { label: 'Корректировка', cls: 'bg-slate-100 text-slate-600', sign: '' },
+  in: { label: 'Приход', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400', sign: '+' },
+  out: { label: 'Продажа', cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400', sign: '-' },
+  writeoff: { label: 'Списание', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400', sign: '-' },
+  adjust: { label: 'Корректировка', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400', sign: '' },
 }
 
 const categoryName = (v) => categoryList.value.find((c) => String(c.id) === String(idFromIri(v)))?.name ?? '—'
@@ -68,16 +68,16 @@ function remainingQty(batch) {
 </script>
 
 <template>
-  <div v-if="loading" class="text-sm text-slate-500">Загрузка…</div>
-  <p v-else-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+  <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">Загрузка…</div>
+  <p v-else-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
   <div v-else-if="product" class="space-y-4">
     <button class="btn-ghost btn-sm" @click="router.back()">
       <AppIcon name="chevronLeft" :size="16" /> Назад
     </button>
 
     <div class="card-pad">
-      <div class="text-lg font-semibold text-slate-800">{{ product.name }}</div>
-      <div class="mt-1 text-sm text-slate-500">
+      <div class="text-lg font-semibold text-slate-800 dark:text-slate-100">{{ product.name }}</div>
+      <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
         {{ product.sku }} · {{ categoryName(product.category) }} · 1 {{ unitLabel(product.unit) }} =
         {{ product.packQty ?? product.pack_qty }} {{ unitLabel(product.packUnit) }}
       </div>
@@ -85,23 +85,23 @@ function remainingQty(batch) {
 
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Мин. остаток</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Мин. остаток</div>
         <div class="mt-1 text-lg font-semibold tabnum">{{ qty(product.minStock) }} {{ unitLabel(product.unit) }}</div>
       </div>
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Цена продажи</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Цена продажи</div>
         <div class="mt-1 text-lg font-semibold tabnum">
           {{ product.priceUsd ?? '—' }} $ / {{ product.priceUzs ?? '—' }} сум
         </div>
       </div>
       <div v-if="auth.can('prices.purchase') && product.purchasePrice !== undefined" class="card-pad">
-        <div class="text-xs text-slate-500">Закупочная цена</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Закупочная цена</div>
         <div class="mt-1 text-lg font-semibold tabnum">{{ product.purchasePrice }} {{ product.currency }}</div>
       </div>
     </div>
 
     <div v-if="auth.can('batches')" class="card overflow-hidden">
-      <div class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">Партии</div>
+      <div class="border-b border-slate-100 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Партии</div>
       <table v-if="productBatches.length" class="w-full">
         <thead>
           <tr>
@@ -114,11 +114,11 @@ function remainingQty(batch) {
         </thead>
         <tbody>
           <tr v-for="b in productBatches" :key="b.id" class="table-row" :class="{ 'opacity-45': remainingQty(b) <= 0 }">
-            <td class="td font-medium text-slate-800">{{ b.number }}</td>
-            <td class="td text-slate-500">{{ date(b.receivedAt) }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }}</td>
             <td class="td tabnum">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</td>
             <td class="td tabnum">{{ b.purchasePrice }} {{ b.currency }}</td>
-            <td class="td text-slate-500">{{ supplierName(b.supplier) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ supplierName(b.supplier) }}</td>
           </tr>
         </tbody>
       </table>
@@ -126,12 +126,12 @@ function remainingQty(batch) {
     </div>
 
     <div v-if="auth.can('movements')" class="card overflow-hidden">
-      <div class="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">История движений</div>
+      <div class="border-b border-slate-100 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">История движений</div>
       <div v-if="movements.length" class="divide-y divide-slate-100">
         <div v-for="m in movements" :key="m.id" class="flex items-center gap-3 px-4 py-2.5">
           <span class="badge shrink-0" :class="MOVE[m.type]?.cls">{{ MOVE[m.type]?.label ?? m.type }}</span>
-          <span class="min-w-0 flex-1 truncate text-sm text-slate-600">{{ m.docNumber }}</span>
-          <span class="shrink-0 text-xs text-slate-400">{{ dateTime(m.occurredAt) }}</span>
+          <span class="min-w-0 flex-1 truncate text-sm text-slate-600 dark:text-slate-400">{{ m.docNumber }}</span>
+          <span class="shrink-0 text-xs text-slate-400 dark:text-slate-500">{{ dateTime(m.occurredAt) }}</span>
           <span class="tabnum shrink-0 text-sm font-medium">{{ MOVE[m.type]?.sign }}{{ qty(Math.abs(m.quantity)) }}</span>
         </div>
       </div>

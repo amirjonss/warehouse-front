@@ -47,16 +47,16 @@ const totals = computed(() => ({
   <div class="space-y-4">
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Должников</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Должников</div>
         <div class="mt-1 text-lg font-semibold">{{ totals.count }}</div>
       </div>
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Долг, $</div>
-        <div class="mt-1 tabnum text-lg font-semibold text-amber-600">{{ money(totals.usd, 'USD') }}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Долг, $</div>
+        <div class="mt-1 tabnum text-lg font-semibold text-amber-600 dark:text-amber-400">{{ money(totals.usd, 'USD') }}</div>
       </div>
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Долг, сум</div>
-        <div class="mt-1 tabnum text-lg font-semibold text-amber-600">{{ money(totals.uzs, 'UZS') }}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Долг, сум</div>
+        <div class="mt-1 tabnum text-lg font-semibold text-amber-600 dark:text-amber-400">{{ money(totals.uzs, 'UZS') }}</div>
       </div>
     </div>
 
@@ -69,7 +69,7 @@ const totals = computed(() => ({
       </select>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="filtered.length" class="w-full">
@@ -84,12 +84,12 @@ const totals = computed(() => ({
         <tbody>
           <tr v-for="d in filtered" :key="d.id" class="table-row">
             <td class="td">
-              <RouterLink :to="`/clients/${d.id}`" class="font-medium text-slate-800 hover:text-blue-600">{{ d.name }}</RouterLink>
+              <RouterLink :to="`/clients/${d.id}`" class="font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">{{ d.name }}</RouterLink>
             </td>
-            <td class="td tabnum" :class="Number(d.debtUsd) > 0 ? 'text-amber-600' : 'text-slate-300'">
+            <td class="td tabnum" :class="Number(d.debtUsd) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-300 dark:text-slate-600'">
               {{ Number(d.debtUsd) > 0 ? money(d.debtUsd, 'USD') : '—' }}
             </td>
-            <td class="td tabnum" :class="Number(d.debtUzs) > 0 ? 'text-amber-600' : 'text-slate-300'">
+            <td class="td tabnum" :class="Number(d.debtUzs) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-300 dark:text-slate-600'">
               {{ Number(d.debtUzs) > 0 ? money(d.debtUzs, 'UZS') : '—' }}
             </td>
             <td class="td text-right">

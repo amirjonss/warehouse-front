@@ -124,10 +124,10 @@ async function post() {
 
 <template>
   <div class="mx-auto max-w-3xl space-y-4">
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="!draft" class="card-pad space-y-3">
-      <div class="text-sm font-semibold text-slate-800">Новый приход</div>
+      <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Новый приход</div>
       <div>
         <label class="label">Поставщик</label>
         <select v-model="header.supplierId" class="input">
@@ -150,14 +150,14 @@ async function post() {
 
     <template v-else>
       <div class="card-pad">
-        <div class="text-sm font-semibold text-slate-800">{{ draft.number }} · черновик</div>
-        <div class="mt-0.5 text-xs text-slate-500">
+        <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ draft.number }} · черновик</div>
+        <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
           {{ supplierList.find((s) => String(s.id) === header.supplierId)?.name }} · {{ header.docDate }}
         </div>
       </div>
 
       <div class="card-pad space-y-3">
-        <div class="text-sm font-semibold text-slate-800">Добавить позицию</div>
+        <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Добавить позицию</div>
         <div class="grid grid-cols-2 gap-3">
           <div class="col-span-2">
             <label class="label">Товар</label>
@@ -182,7 +182,7 @@ async function post() {
                 v-for="c in ['USD', 'UZS']"
                 :key="c"
                 class="btn-ghost btn-sm flex-1"
-                :class="{ 'border-blue-500 bg-blue-50 text-blue-700': line.currency === c }"
+                :class="{ 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-500/10 dark:text-indigo-300': line.currency === c }"
                 @click="line.currency = c; line.rate = c === 'UZS' ? '1' : referenceRate"
               >
                 {{ c }}
@@ -226,9 +226,9 @@ async function post() {
       </div>
 
       <div class="card-pad flex items-center justify-between">
-        <div class="text-sm text-slate-500">
+        <div class="text-sm text-slate-500 dark:text-slate-400">
           Итого:
-          <span class="tabnum font-semibold text-slate-800">
+          <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">
             <template v-if="totals.USD > 0">{{ money(totals.USD, 'USD') }}</template>
             <template v-if="totals.USD > 0 && totals.UZS > 0"> + </template>
             <template v-if="totals.UZS > 0">{{ money(totals.UZS, 'UZS') }}</template>

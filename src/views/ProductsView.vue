@@ -143,7 +143,7 @@ async function save() {
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="filtered.length" class="hidden w-full sm:table">
@@ -161,11 +161,11 @@ async function save() {
         <tbody>
           <tr v-for="p in filtered" :key="p.id" class="table-row">
             <td class="td">
-              <RouterLink :to="`/products/${p.id}`" class="font-medium text-slate-800 hover:text-blue-600">{{ p.name }}</RouterLink>
-              <div class="text-xs text-slate-400">{{ p.sku }}</div>
+              <RouterLink :to="`/products/${p.id}`" class="font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">{{ p.name }}</RouterLink>
+              <div class="text-xs text-slate-400 dark:text-slate-500">{{ p.sku }}</div>
             </td>
-            <td class="td text-slate-500">{{ categoryName(p.category) }}</td>
-            <td class="td text-slate-500">1 {{ unitLabel(p.unit) }} = {{ p.packQty ?? p.pack_qty }} {{ unitLabel(p.packUnit) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ categoryName(p.category) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">1 {{ unitLabel(p.unit) }} = {{ p.packQty ?? p.pack_qty }} {{ unitLabel(p.packUnit) }}</td>
             <td v-if="auth.can('prices.purchase')" class="td tabnum">{{ p.purchasePrice }}</td>
             <td class="td tabnum">{{ p.priceUsd ?? '—' }} $ / {{ p.priceUzs ?? '—' }} сум</td>
             <td class="td tabnum">{{ p.stock }}</td>
@@ -180,8 +180,8 @@ async function save() {
 
       <div class="divide-y divide-slate-100 sm:hidden">
         <RouterLink v-for="p in filtered" :key="p.id" :to="`/products/${p.id}`" class="block px-4 py-3">
-          <div class="font-medium text-slate-800">{{ p.name }}</div>
-          <div class="mt-0.5 flex justify-between text-xs text-slate-500">
+          <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
+          <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
             <span class="tabnum">{{ p.stock }} {{ unitLabel(p.unit) }}</span>
           </div>
@@ -240,7 +240,7 @@ async function save() {
               v-for="c in ['USD', 'UZS']"
               :key="c"
               class="btn-ghost btn-sm flex-1"
-              :class="{ 'border-blue-500 bg-blue-50 text-blue-700': form.currency === c }"
+              :class="{ 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-500/10 dark:text-indigo-300': form.currency === c }"
               @click="form.currency = c"
             >
               {{ c }}
@@ -261,11 +261,11 @@ async function save() {
             <input v-model="form.priceUzs" type="number" step="1000" class="input" placeholder="необязательно" />
           </div>
         </div>
-        <label class="flex items-center gap-2 text-sm text-slate-700">
-          <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input v-model="form.isActive" type="checkbox" class="h-4 w-4 rounded border-slate-300 bg-white text-indigo-600 dark:border-slate-700 dark:bg-slate-800" />
           Активен
         </label>
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
+        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
       <template #footer>
         <button class="btn-ghost" @click="modal = false">Отмена</button>

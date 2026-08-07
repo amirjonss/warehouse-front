@@ -77,13 +77,13 @@ async function remove(c) {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-sm text-slate-500">Всего категорий: {{ list.length }}</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400">Всего категорий: {{ list.length }}</div>
       <button v-if="auth.can('categories')" class="btn-primary btn-sm" @click="openNew">
         <AppIcon name="plus" :size="16" /> Новая категория
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="list.length" class="w-full">
@@ -97,8 +97,8 @@ async function remove(c) {
         </thead>
         <tbody>
           <tr v-for="c in list" :key="c.id" class="table-row">
-            <td class="td font-medium text-slate-800">{{ c.name }}</td>
-            <td class="td text-slate-500">{{ c.slug }}</td>
+            <td class="td font-medium text-slate-800 dark:text-slate-100">{{ c.name }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ c.slug }}</td>
             <td class="td tabnum">{{ c.sortOrder ?? '—' }}</td>
             <td class="td text-right">
               <div class="flex justify-end gap-1">
@@ -126,7 +126,7 @@ async function remove(c) {
           <label class="label">Порядок сортировки</label>
           <input v-model="form.sortOrder" type="number" class="input" />
         </div>
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ formError }}</p>
+        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
       <template #footer>
         <button class="btn-ghost" @click="modal = false">Отмена</button>

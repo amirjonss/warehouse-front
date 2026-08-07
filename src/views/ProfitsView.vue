@@ -12,8 +12,8 @@ const loading = ref(true)
 const error = ref('')
 
 const TYPE = {
-  realized: { label: 'Реализовано', cls: 'bg-emerald-100 text-emerald-700' },
-  reversed: { label: 'Отменено', cls: 'bg-slate-100 text-slate-500' },
+  realized: { label: 'Реализовано', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' },
+  reversed: { label: 'Отменено', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' },
 }
 
 async function load() {
@@ -46,16 +46,16 @@ const totalByCurrency = computed(() => {
   <div class="space-y-4">
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Прибыль, $</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Прибыль, $</div>
         <div class="mt-1 tabnum text-lg font-semibold">{{ money(totalByCurrency.USD, 'USD') }}</div>
       </div>
       <div class="card-pad">
-        <div class="text-xs text-slate-500">Прибыль, сум</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Прибыль, сум</div>
         <div class="mt-1 tabnum text-lg font-semibold">{{ money(totalByCurrency.UZS, 'UZS') }}</div>
       </div>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <table v-if="list.length" class="w-full">
@@ -70,11 +70,11 @@ const totalByCurrency = computed(() => {
         </thead>
         <tbody>
           <tr v-for="p in list" :key="p.id" class="table-row">
-            <td class="td text-slate-500">{{ dateTime(p.occurredAt) }}</td>
-            <td class="td text-slate-700">{{ saleNumber(p.sale) }}</td>
-            <td class="td text-slate-700">{{ productName(p.product) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ dateTime(p.occurredAt) }}</td>
+            <td class="td text-slate-700 dark:text-slate-300">{{ saleNumber(p.sale) }}</td>
+            <td class="td text-slate-700 dark:text-slate-300">{{ productName(p.product) }}</td>
             <td class="td"><span class="badge" :class="TYPE[p.type]?.cls">{{ TYPE[p.type]?.label ?? p.type }}</span></td>
-            <td class="td tabnum font-medium" :class="Number(p.profit) < 0 ? 'text-red-600' : 'text-emerald-600'">
+            <td class="td tabnum font-medium" :class="Number(p.profit) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
               {{ money(p.profit, p.currency) }}
             </td>
           </tr>

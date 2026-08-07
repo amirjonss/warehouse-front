@@ -5,6 +5,14 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wirehouse — складской учёт</title>
+    <script>
+      // До монтирования Vue — иначе при загрузке на тёмной теме мелькает белый фон.
+      (function () {
+        var saved = localStorage.getItem('wirehouse-theme');
+        var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

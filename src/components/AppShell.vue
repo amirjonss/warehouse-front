@@ -4,10 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import RateChip from '@/components/RateChip.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const theme = useThemeStore()
 
 const drawerOpen = ref(false)
 watch(() => route.fullPath, () => (drawerOpen.value = false))
@@ -51,22 +53,22 @@ function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-950">
     <!-- Сайдбар: постоянный на десктопе, выдвижной на телефоне -->
     <aside
-      class="fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col bg-slate-800 transition-transform duration-200 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-200 bg-slate-50 transition-transform duration-200 lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
       :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="flex h-16 items-center gap-2.5 px-5">
-        <div class="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-white">
+      <div class="flex h-16 items-center gap-2.5 px-4">
+        <div class="grid h-9 w-9 place-items-center rounded-lg bg-indigo-600 text-white">
           <AppIcon name="boxes" :size="20" />
         </div>
         <div class="leading-tight">
-          <div class="font-semibold text-white">Wirehouse</div>
-          <div class="text-[11px] text-slate-400">складской учёт</div>
+          <div class="font-semibold text-slate-900 dark:text-white">Wirehouse</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500">складской учёт</div>
         </div>
         <button
-          class="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white lg:hidden"
+          class="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 lg:hidden dark:hover:bg-slate-800 dark:hover:text-slate-200"
           @click="drawerOpen = false"
           aria-label="Закрыть меню"
         >
@@ -87,22 +89,28 @@ function logout() {
         </RouterLink>
       </nav>
 
-      <div class="border-t border-slate-700/70 p-3">
+      <div class="border-t border-slate-200 p-3 dark:border-slate-800">
         <div class="flex items-center gap-3 rounded-lg px-2 py-2">
           <div
             class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
-            :class="auth.role === 'ROLE_ADMIN' ? 'bg-blue-600' : 'bg-emerald-600'"
+            :class="auth.role === 'ROLE_ADMIN' ? 'bg-indigo-600' : 'bg-emerald-600'"
           >
             {{ initials }}
           </div>
           <div class="min-w-0 leading-tight">
-            <div class="truncate text-sm font-medium text-white">{{ auth.user?.email }}</div>
-            <div class="text-[11px] text-slate-400">{{ auth.roleTitle }}</div>
+            <div class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{{ auth.user?.email }}</div>
+            <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ auth.roleTitle }}</div>
           </div>
         </div>
         <div class="mt-1 flex gap-1">
           <button
-            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-400 transition hover:bg-slate-700 hover:text-white"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            @click="theme.toggle"
+          >
+            <AppIcon :name="theme.dark ? 'sun' : 'moon'" :size="15" /> {{ theme.dark ? 'Светлая' : 'Тёмная' }}
+          </button>
+          <button
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             @click="logout"
           >
             <AppIcon name="logout" :size="15" /> Выйти
@@ -118,18 +126,18 @@ function logout() {
     />
 
     <!-- Контент -->
-    <div class="lg:pl-[264px]">
+    <div class="lg:pl-[248px]">
       <header
-        class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6"
+        class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-slate-800 dark:bg-slate-950/80"
       >
         <button
-          class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+          class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden dark:text-slate-300 dark:hover:bg-slate-800"
           @click="drawerOpen = true"
           aria-label="Меню"
         >
           <AppIcon name="menu" :size="22" />
         </button>
-        <h1 class="truncate text-base font-semibold text-slate-800 sm:text-lg">{{ pageTitle }}</h1>
+        <h1 class="truncate text-base font-semibold text-slate-800 sm:text-lg dark:text-slate-100">{{ pageTitle }}</h1>
         <div class="ml-auto flex items-center gap-2">
           <RateChip />
           <RouterLink
