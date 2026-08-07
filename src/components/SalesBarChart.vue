@@ -90,7 +90,7 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
     >
       <div class="font-medium text-slate-800 dark:text-slate-100">{{ dateShort(data[hovered].date) }}</div>
       <div class="tabnum mt-0.5 text-slate-600 dark:text-slate-300">{{ money(data[hovered].total) }}</div>
-      <div class="text-slate-400 dark:text-slate-500">{{ data[hovered].count }} отгрузок</div>
+      <div class="text-slate-400 dark:text-slate-500">{{ data[hovered].count }} продаж</div>
     </div>
   </div>
 </template>

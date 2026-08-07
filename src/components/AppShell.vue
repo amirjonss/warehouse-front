@@ -20,7 +20,7 @@ const NAV = [
   { to: '/products', icon: 'tag', label: 'Товары', perm: 'products' },
   { to: '/categories', icon: 'tag', label: 'Категории', perm: 'categories' },
   { to: '/receipts', icon: 'receipt', label: 'Приход', perm: 'receipts' },
-  { to: '/sales', icon: 'truck', label: 'Отгрузки', perm: 'sales' },
+  { to: '/sales', icon: 'cart', label: 'Продажи', perm: 'sales' },
   { to: '/writeoffs', icon: 'trash', label: 'Списания', perm: 'writeoffs' },
   { to: '/clients', icon: 'users', label: 'Клиенты', perm: 'clients' },
   { to: '/suppliers', icon: 'truck', label: 'Поставщики', perm: 'suppliers' },
@@ -146,15 +146,7 @@ function logout() {
             class="btn-primary btn-sm sm:px-3.5 sm:py-2 sm:text-sm"
           >
             <AppIcon name="plus" :size="16" />
-            <span class="hidden sm:inline">Отгрузка</span>
-          </RouterLink>
-          <RouterLink
-            v-if="auth.can('receipts.create')"
-            to="/receipts/new"
-            class="btn-ghost btn-sm sm:px-3.5 sm:py-2 sm:text-sm"
-          >
-            <AppIcon name="plus" :size="16" />
-            <span class="hidden sm:inline">Приход</span>
+            <span class="hidden sm:inline">Продажа</span>
           </RouterLink>
         </div>
       </header>

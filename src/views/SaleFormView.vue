@@ -38,7 +38,7 @@ const line = reactive({ productId: '', quantity: 1, price: '', currency: 'USD', 
 
 /**
  * Ходовые товары — временно считаем на клиенте по частоте в проведённых
- * отгрузках за последние 90 дней. Когда на бэкенде появится отдельный
+ * продажах за последние 90 дней. Когда на бэкенде появится отдельный
  * эндпоинт (например GET /products/popular), эта функция заменится на
  * один запрос — компонент и остальная логика не изменятся.
  */
@@ -89,7 +89,7 @@ const loadingDraft = ref(false)
 
 /**
  * Продолжение существующего черновика: переход с /sales/:id/edit
- * («Продолжить» в списке отгрузок). Проведённые/отменённые документы сюда
+ * («Продолжить» в списке продаж). Проведённые/отменённые документы сюда
  * не редактируются — открываем их в режиме просмотра.
  */
 async function loadExistingDraft(id) {
@@ -158,7 +158,7 @@ const availableProducts = computed(() => {
   return productList.value.filter((p) => !used.has(String(p.id)))
 })
 
-/** Топ-6 ходовых товаров, которых ещё нет в текущей отгрузке — быстрые чипы над полем поиска. */
+/** Топ-6 ходовых товаров, которых ещё нет в текущей продаже — быстрые чипы над полем поиска. */
 const quickPicks = computed(() => {
   const byId = new Map(availableProducts.value.map((p) => [String(p.id), p]))
   return popularProductIds.value.map((pid) => byId.get(pid)).filter(Boolean).slice(0, 6)
@@ -310,7 +310,7 @@ async function post() {
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_336px]">
       <!--
-        На планшете/мобильном (< xl) карточка «Новая отгрузка» должна идти первой,
+        На планшете/мобильном (< xl) карточка «Новая продажа» должна идти первой,
         поэтому визуальный порядок задаём через order, а не переставляем разметку.
       -->
       <div class="order-2 flex min-w-0 flex-col gap-6 xl:order-1 xl:min-h-[calc(100vh-7rem)]">
@@ -454,7 +454,7 @@ async function post() {
           </div>
 
           <p v-if="!header.customerId" class="mt-3 text-xs text-slate-400 dark:text-slate-500">
-            Сначала выберите клиента — позиции добавятся в его отгрузку.
+            Сначала выберите клиента — позиции добавятся в его продажу.
           </p>
         </section>
 
@@ -587,7 +587,7 @@ async function post() {
       <aside class="order-1 flex flex-col xl:order-2 xl:sticky xl:top-20 xl:min-h-[calc(100vh-7rem)]">
         <section class="card-pad flex flex-1 flex-col rounded-2xl p-6 shadow-sm dark:shadow-lg dark:shadow-black/20">
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Новая отгрузка</h2>
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Новая продажа</h2>
             <span v-if="draft" class="badge bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ draft.number }}</span>
           </div>
 
@@ -624,7 +624,7 @@ async function post() {
               </span>
             </div>
             <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
-              Провести отгрузку
+              Провести продажу
             </button>
           </div>
         </section>
@@ -645,7 +645,7 @@ async function post() {
         </span>
       </div>
       <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
-        Провести отгрузку
+        Провести продажу
       </button>
     </div>
   </div>

@@ -78,7 +78,7 @@ function open(s) {
   else opened.value = s
 }
 
-/** Удалить можно только черновик — проведённая отгрузка уже списала товар и создала долг. */
+/** Удалить можно только черновик — проведённая продажа уже списала товар и создала долг. */
 async function removeDraft(s) {
   if (!(await confirmStore.ask(`Удалить черновик «${s.number}»?`))) return
   try {
@@ -107,7 +107,7 @@ const filtered = computed(() =>
       <input v-model="search" class="input max-w-xs" placeholder="Поиск по номеру/клиенту" />
       <input v-model="from" type="date" class="input max-w-[150px]" />
       <input v-model="to" type="date" class="input max-w-[150px]" />
-      <RouterLink to="/sales/new" class="btn-primary btn-sm ml-auto">Новая отгрузка</RouterLink>
+      <RouterLink to="/sales/new" class="btn-primary btn-sm ml-auto">Новая продажа</RouterLink>
     </div>
 
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
@@ -205,7 +205,7 @@ const filtered = computed(() =>
         </tbody>
       </table>
       </div>
-      <EmptyState v-else-if="!loading" icon="truck" title="Отгрузок пока нет" />
+      <EmptyState v-else-if="!loading" icon="cart" title="Продаж пока нет" />
     </div>
 
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + clientName(opened.customer)" @close="opened = null">

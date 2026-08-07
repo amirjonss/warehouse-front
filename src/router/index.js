@@ -60,19 +60,19 @@ const routes = [
     path: '/sales',
     name: 'sales',
     component: () => import('@/views/SalesView.vue'),
-    meta: { title: 'Отгрузки', perm: 'sales' },
+    meta: { title: 'Продажи', perm: 'sales' },
   },
   {
     path: '/sales/new',
     name: 'sale-new',
     component: () => import('@/views/SaleFormView.vue'),
-    meta: { title: 'Новая отгрузка', perm: 'sales.create' },
+    meta: { title: 'Новая продажа', perm: 'sales.create' },
   },
   {
     path: '/sales/:id/edit',
     name: 'sale-edit',
     component: () => import('@/views/SaleFormView.vue'),
-    meta: { title: 'Отгрузка', perm: 'sales.create' },
+    meta: { title: 'Продажа', perm: 'sales.create' },
   },
   {
     path: '/writeoffs',

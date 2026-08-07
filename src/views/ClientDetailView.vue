@@ -93,7 +93,7 @@ const balance = computed(() => {
 
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="card-pad">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Отгрузок</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Продаж</div>
         <div class="mt-1 text-lg font-semibold">{{ clientSales.length }}</div>
       </div>
       <div class="card-pad sm:col-span-2">
@@ -109,7 +109,7 @@ const balance = computed(() => {
 
     <div class="flex gap-2 border-b border-slate-200 dark:border-slate-800">
       <button class="px-3 py-2 text-sm font-medium" :class="tab === 'sales' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 dark:text-slate-400'" @click="tab = 'sales'">
-        Отгрузки
+        Продажи
       </button>
       <button class="px-3 py-2 text-sm font-medium" :class="tab === 'pay' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-slate-500 dark:text-slate-400'" @click="tab = 'pay'">
         Оплаты
@@ -172,7 +172,7 @@ const balance = computed(() => {
           </tr>
         </tbody>
       </table>
-      <EmptyState v-else icon="truck" title="Отгрузок пока нет" />
+      <EmptyState v-else icon="cart" title="Продаж пока нет" />
     </div>
 
     <div v-else class="card overflow-hidden">
