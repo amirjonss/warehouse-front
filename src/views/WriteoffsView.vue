@@ -167,7 +167,22 @@ function lossValue(item) {
     <p v-if="error && !modal" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="list.length" class="w-full">
+      <div v-if="list.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div class="cursor-pointer p-4" v-for="w in list" :key="w.id" @click="opened = w">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ w.number }}</div>
+              <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ date(w.docDate) }} · {{ w.reason }}</div>
+            </div>
+            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[w.status] }}</span>
+          </div>
+          <div class="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            Позиций: {{ (itemsByWriteoff.get(String(w.id)) ?? []).length }}
+          </div>
+        </div>
+      </div>
+
+      <table v-if="list.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Номер</th>

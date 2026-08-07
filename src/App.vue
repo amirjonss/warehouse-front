@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import ConfirmDialogHost from '@/components/ConfirmDialogHost.vue'
 
 const route = useRoute()
 const blank = computed(() => route.meta.layout === 'blank')
@@ -16,4 +17,5 @@ const blank = computed(() => route.meta.layout === 'blank')
       <component :is="Component" />
     </RouterView>
   </AppShell>
+  <ConfirmDialogHost />
 </template>

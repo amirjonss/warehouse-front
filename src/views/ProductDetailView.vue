@@ -102,7 +102,23 @@ function remainingQty(batch) {
 
     <div v-if="auth.can('batches')" class="card overflow-hidden">
       <div class="border-b border-slate-100 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Партии</div>
-      <table v-if="productBatches.length" class="w-full">
+      <div v-if="productBatches.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div
+          v-for="b in productBatches"
+          :key="b.id"
+          class="p-4"
+          :class="{ 'opacity-45': remainingQty(b) <= 0 }"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</span>
+            <span class="tabnum text-sm text-slate-700 dark:text-slate-300">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</span>
+          </div>
+          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }} · {{ supplierName(b.supplier) }}</div>
+          <div class="mt-0.5 tabnum text-xs text-slate-400 dark:text-slate-500">{{ b.purchasePrice }} {{ b.currency }}</div>
+        </div>
+      </div>
+
+      <table v-if="productBatches.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Партия</th>

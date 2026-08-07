@@ -117,7 +117,30 @@ const balance = computed(() => {
     </div>
 
     <div v-if="tab === 'sales'" class="card overflow-hidden">
-      <table v-if="clientSales.length" class="w-full">
+      <div v-if="clientSales.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="s in clientSales" :key="s.id" class="p-4">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</div>
+              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</div>
+            </div>
+            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[s.status] }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between text-sm">
+            <span class="tabnum text-slate-700 dark:text-slate-300">
+              <template v-if="Number(s.totalUsd) > 0">{{ money(s.totalUsd, 'USD') }}</template>
+              <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"> + </template>
+              <template v-if="Number(s.totalUzs) > 0">{{ money(s.totalUzs, 'UZS') }}</template>
+            </span>
+            <span class="tabnum text-amber-600 dark:text-amber-400">
+              <template v-if="saleRemaining(s).usd > 0">{{ money(saleRemaining(s).usd, 'USD') }} </template>
+              <template v-if="saleRemaining(s).uzs > 0">{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <table v-if="clientSales.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Накладная</th>
@@ -153,7 +176,20 @@ const balance = computed(() => {
     </div>
 
     <div v-else class="card overflow-hidden">
-      <table v-if="clientPayments.length" class="w-full">
+      <div v-if="clientPayments.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="p in clientPayments" :key="p.id" class="p-4">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.number }}</div>
+              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(p.docDate) }} · {{ METHOD[p.method] ?? p.method }}</div>
+            </div>
+            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[p.status] }}</span>
+          </div>
+          <div class="mt-2 tabnum text-sm text-emerald-600 dark:text-emerald-400">{{ money(p.amount, p.currency) }}</div>
+        </div>
+      </div>
+
+      <table v-if="clientPayments.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Документ</th>

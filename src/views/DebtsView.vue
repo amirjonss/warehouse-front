@@ -72,7 +72,22 @@ const totals = computed(() => ({
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="filtered.length" class="w-full">
+      <div v-if="filtered.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="d in filtered" :key="d.id" class="flex items-center justify-between gap-2 p-4">
+          <RouterLink :to="`/clients/${d.id}`" class="min-w-0 font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">
+            {{ d.name }}
+          </RouterLink>
+          <div class="flex shrink-0 items-center gap-3">
+            <div class="tabnum text-right text-sm">
+              <div v-if="Number(d.debtUsd) > 0" class="text-amber-600 dark:text-amber-400">{{ money(d.debtUsd, 'USD') }}</div>
+              <div v-if="Number(d.debtUzs) > 0" class="text-amber-600 dark:text-amber-400">{{ money(d.debtUzs, 'UZS') }}</div>
+            </div>
+            <button v-if="auth.can('payments.create')" class="btn-ghost btn-sm" @click="payFor = d">Оплата</button>
+          </div>
+        </div>
+      </div>
+
+      <table v-if="filtered.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Клиент</th>

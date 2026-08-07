@@ -77,7 +77,26 @@ const filtered = computed(() =>
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="filtered.length" class="w-full">
+      <div v-if="filtered.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div class="cursor-pointer p-4" v-for="r in filtered" :key="r.id" @click="opened = r">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ r.number }}</div>
+              <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                {{ date(r.docDate) }} · {{ supplierName(r.supplier) }}
+              </div>
+            </div>
+            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[r.status] }}</span>
+          </div>
+          <div class="mt-2 tabnum text-sm text-slate-700 dark:text-slate-300">
+            <template v-if="Number(r.totalUsd) > 0">{{ money(r.totalUsd, 'USD') }}</template>
+            <template v-if="Number(r.totalUsd) > 0 && Number(r.totalUzs) > 0"> + </template>
+            <template v-if="Number(r.totalUzs) > 0">{{ money(r.totalUzs, 'UZS') }}</template>
+          </div>
+        </div>
+      </div>
+
+      <table v-if="filtered.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Номер</th>

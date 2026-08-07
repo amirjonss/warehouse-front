@@ -4,9 +4,11 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirmStore } from '@/stores/confirm'
 import { categories } from '@/api/resources'
 
 const auth = useAuthStore()
+const confirmStore = useConfirmStore()
 
 const list = ref([])
 const loading = ref(true)
@@ -64,7 +66,7 @@ async function save() {
 }
 
 async function remove(c) {
-  if (!confirm(`Удалить категорию «${c.name}»?`)) return
+  if (!(await confirmStore.ask(`Удалить категорию «${c.name}»?`))) return
   try {
     await categories.remove(c.id)
     await load()
@@ -86,7 +88,20 @@ async function remove(c) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="list.length" class="w-full">
+      <div v-if="list.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="c in list" :key="c.id" class="flex items-center justify-between gap-2 p-4">
+          <div class="min-w-0">
+            <div class="font-medium text-slate-800 dark:text-slate-100">{{ c.name }}</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500">{{ c.slug }} · #{{ c.sortOrder ?? '—' }}</div>
+          </div>
+          <div class="flex shrink-0 gap-1">
+            <button class="btn-ghost btn-sm" @click="openEdit(c)"><AppIcon name="edit" :size="14" /></button>
+            <button class="btn-ghost btn-sm" @click="remove(c)"><AppIcon name="trash" :size="14" /></button>
+          </div>
+        </div>
+      </div>
+
+      <table v-if="list.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Название</th>

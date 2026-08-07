@@ -200,7 +200,22 @@ async function post() {
       </div>
 
       <div class="card overflow-hidden">
-        <table v-if="items.length" class="w-full">
+        <div v-if="items.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+          <div v-for="i in items" :key="i.id" class="flex items-center justify-between gap-2 p-4">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
+              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {{ i.quantity }} × {{ i.price }} {{ i.currency }}
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <span class="tabnum text-sm font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</span>
+              <button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>
+            </div>
+          </div>
+        </div>
+
+        <table v-if="items.length" class="hidden w-full sm:table">
           <thead>
             <tr>
               <th class="th">Товар</th>

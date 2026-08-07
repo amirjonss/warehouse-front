@@ -4,8 +4,10 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { date } from '@/utils/format'
+import { useConfirmStore } from '@/stores/confirm'
 import { users } from '@/api/resources'
 
+const confirmStore = useConfirmStore()
 const ROLE_TITLES = { ROLE_ADMIN: 'Администратор', ROLE_SALES: 'Продавец' }
 
 const list = ref([])
@@ -61,7 +63,13 @@ async function save() {
 }
 
 async function block(u) {
-  if (!confirm(`Заблокировать доступ для ${u.email}? Это необратимо — создать новый аккаунт можно, а вернуть этот нельзя.`)) return
+  if (
+    !(await confirmStore.ask(
+      `Заблокировать доступ для ${u.email}? Это необратимо — создать новый аккаунт можно, а вернуть этот нельзя.`,
+      { confirmLabel: 'Заблокировать' },
+    ))
+  )
+    return
   try {
     await users.remove(u.id)
     await load()

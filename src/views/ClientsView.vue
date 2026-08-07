@@ -5,9 +5,11 @@ import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirmStore } from '@/stores/confirm'
 import { clientDebt, clients } from '@/api/resources'
 
 const auth = useAuthStore()
+const confirmStore = useConfirmStore()
 
 const list = ref([])
 const debtByClient = ref(new Map())
@@ -84,7 +86,7 @@ async function save() {
 }
 
 async function remove(c) {
-  if (!confirm(`Удалить клиента «${c.name}»?`)) return
+  if (!(await confirmStore.ask(`Удалить клиента «${c.name}»?`))) return
   try {
     await clients.remove(c.id)
     await load()

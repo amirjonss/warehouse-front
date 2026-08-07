@@ -31,6 +31,15 @@
   td.tabnum {
     @apply whitespace-nowrap;
   }
+  /* Убираем стрелочки-степпер у числовых полей — визуальный шум в узких инпутах */
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

@@ -58,7 +58,23 @@ const totalByCurrency = computed(() => {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="list.length" class="w-full">
+      <div v-if="list.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="p in list" :key="p.id" class="p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="badge" :class="TYPE[p.type]?.cls">{{ TYPE[p.type]?.label ?? p.type }}</span>
+            <span
+              class="tabnum font-semibold"
+              :class="Number(p.profit) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'"
+            >
+              {{ money(p.profit, p.currency) }}
+            </span>
+          </div>
+          <div class="mt-1.5 text-sm text-slate-700 dark:text-slate-300">{{ productName(p.product) }}</div>
+          <div class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{{ dateTime(p.occurredAt) }} · {{ saleNumber(p.sale) }}</div>
+        </div>
+      </div>
+
+      <table v-if="list.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Дата</th>

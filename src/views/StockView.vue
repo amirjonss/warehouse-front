@@ -107,7 +107,22 @@ const totals = computed(() => ({
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="tab === 'products'" class="card overflow-hidden">
-      <table v-if="filteredProducts.length" class="w-full">
+      <div v-if="filteredProducts.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <RouterLink v-for="r in filteredProducts" :key="r.id" :to="`/products/${r.id}`" class="flex items-center justify-between gap-2 p-4">
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ r.name }}</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500">{{ r.sku }}</div>
+          </div>
+          <div class="shrink-0 text-right">
+            <div class="tabnum text-sm text-slate-700 dark:text-slate-300">{{ qty(r.remainingQty) }} {{ unitLabel(r.unit) }}</div>
+            <span class="badge mt-1" :class="stockStatus(Number(r.remainingQty), r.minStock).cls">
+              {{ stockStatus(Number(r.remainingQty), r.minStock).label }}
+            </span>
+          </div>
+        </RouterLink>
+      </div>
+
+      <table v-if="filteredProducts.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Товар</th>
@@ -134,7 +149,21 @@ const totals = computed(() => ({
     </div>
 
     <div v-else class="card overflow-hidden">
-      <table v-if="filteredBatches.length" class="w-full">
+      <div v-if="filteredBatches.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="b in filteredBatches" :key="b.id" class="p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</span>
+            <span class="tabnum text-sm text-slate-700 dark:text-slate-300">{{ qty(b.stock) }}</span>
+          </div>
+          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ b.productName }} · {{ date(b.receivedAt) }}</div>
+          <div class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+            {{ b.supplierName }}
+            <template v-if="auth.can('prices.purchase')"> · {{ b.purchasePrice }} {{ b.currency }}</template>
+          </div>
+        </div>
+      </div>
+
+      <table v-if="filteredBatches.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Партия</th>

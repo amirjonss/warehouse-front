@@ -4,9 +4,11 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirmStore } from '@/stores/confirm'
 import { suppliers } from '@/api/resources'
 
 const auth = useAuthStore()
+const confirmStore = useConfirmStore()
 
 const list = ref([])
 const loading = ref(true)
@@ -79,7 +81,7 @@ async function save() {
 }
 
 async function remove(s) {
-  if (!confirm(`Удалить поставщика «${s.name}»?`)) return
+  if (!(await confirmStore.ask(`Удалить поставщика «${s.name}»?`))) return
   try {
     await suppliers.remove(s.id)
     await load()

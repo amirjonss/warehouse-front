@@ -86,7 +86,25 @@ function setToday() {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="shown.length" class="w-full">
+      <div v-if="shown.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="m in shown" :key="m.id" class="p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="badge" :class="TYPE[m.type]?.cls">{{ TYPE[m.type]?.label ?? m.type }}</span>
+            <span
+              class="tabnum text-sm font-medium"
+              :class="Number(m.quantity) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'"
+            >
+              {{ Number(m.quantity) > 0 ? '+' : '' }}{{ qty(m.quantity) }}
+            </span>
+          </div>
+          <div class="mt-1.5 text-sm text-slate-700 dark:text-slate-300">{{ productName(m.product) }}</div>
+          <div class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+            {{ dateTime(m.occurredAt) }} · {{ m.docNumber }} · {{ batchNumber(m.batch) }}
+          </div>
+        </div>
+      </div>
+
+      <table v-if="shown.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Дата и время</th>
