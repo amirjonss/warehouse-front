@@ -1,29 +1,27 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
+import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Pagination from '@/components/Pagination.vue'
 import { date, money } from '@/utils/format'
 import { useConfirmStore } from '@/stores/confirm'
-import { clients, debts, products, saleItems, sales } from '@/api/resources'
-import { idFromIri } from '@/api/iri'
+import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
+import { api } from '@/api/client'
+import { sales } from '@/api/resources'
 
 const route = useRoute()
 const router = useRouter()
 const confirmStore = useConfirmStore()
 
-const list = ref([])
-const clientList = ref([])
-const productList = ref([])
-const itemsBySale = ref(new Map())
-const debtBySale = ref(new Map())
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
-const from = ref('')
-const to = ref('')
 const opened = ref(null)
+
+const { from, to, specificDate, monthLabel, monthLabelShort, applyMonth, shiftMonth, applySpecificDate } = useDateRangeFilter()
 
 const STATUS = {
   draft: { label: 'черновик', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
@@ -31,46 +29,51 @@ const STATUS = {
   cancelled: { label: 'отменено', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' },
 }
 
-async function load() {
+const page = ref(1)
+const pageSize = 20
+const pageItems = ref([])
+const totalItems = ref(0)
+
+/**
+ * strictly_after/strictly_before — исключающие границы, поэтому сдвигаем на день наружу
+ * (dayBefore/dayAfter), чтобы сам from/to остался внутри диапазона.
+ * У Sale нет SearchFilter — поиск по номеру/клиенту фильтрует только уже загруженную страницу.
+ */
+async function loadPage(p) {
   loading.value = true
   error.value = ''
   try {
-    const [s, c, p, items, allDebts] = await Promise.all([
-      sales.list(),
-      clients.list(),
-      products.list(),
-      saleItems.list(),
-      debts.list(),
-    ])
-    list.value = s.sort((a, b) => b.docDate.localeCompare(a.docDate))
-    clientList.value = c
-    productList.value = p
-
-    const itemMap = new Map()
-    for (const it of items) {
-      const sid = idFromIri(it.sale)
-      if (!itemMap.has(sid)) itemMap.set(sid, [])
-      itemMap.get(sid).push(it)
-    }
-    itemsBySale.value = itemMap
-
-    const debtMap = new Map()
-    for (const d of allDebts) {
-      const sid = idFromIri(d.sale)
-      const cur = debtMap.get(sid) ?? { USD: 0, UZS: 0 }
-      cur[d.currency] += Number(d.amount)
-      debtMap.set(sid, cur)
-    }
-    debtBySale.value = debtMap
-
-    if (route.query.doc) opened.value = list.value.find((x) => String(x.id) === String(route.query.doc)) ?? null
+    const params = { page: p, itemsPerPage: pageSize, 'order[docDate]': 'desc' }
+    if (from.value) params['docDate[strictly_after]'] = dayBefore(from.value)
+    if (to.value) params['docDate[strictly_before]'] = dayAfter(to.value)
+    const { items, totalItems: total } = await api.getPage('/sales', params)
+    pageItems.value = items
+    totalItems.value = total
   } catch (e) {
     error.value = e.message
   } finally {
     loading.value = false
   }
 }
-onMounted(load)
+watch(page, (p) => loadPage(p))
+watch([from, to], () => {
+  page.value = 1
+  loadPage(1)
+})
+
+onMounted(async () => {
+  await loadPage(1)
+
+  if (route.query.doc) {
+    try {
+      opened.value = await sales.get(route.query.doc)
+    } catch {
+      /* документ не нашёлся — просто не открываем модалку */
+    }
+  }
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize)))
 
 /** Черновик открывается на редактирование, проведённая/отменённая — в режиме просмотра. */
 function open(s) {
@@ -83,32 +86,60 @@ async function removeDraft(s) {
   if (!(await confirmStore.ask(`Удалить черновик «${s.number}»?`))) return
   try {
     await sales.remove(s.id)
-    list.value = list.value.filter((x) => x.id !== s.id)
+    pageItems.value = pageItems.value.filter((x) => x.id !== s.id)
+    totalItems.value -= 1
   } catch (e) {
     error.value = e.message
   }
 }
 
-const clientName = (v) => clientList.value.find((c) => String(c.id) === String(idFromIri(v)))?.name ?? '—'
-const productName = (v) => productList.value.find((p) => String(p.id) === String(idFromIri(v)))?.name ?? '—'
-const remaining = (sale) => debtBySale.value.get(String(sale.id)) ?? { USD: 0, UZS: 0 }
+const clientName = (v) => v?.name ?? '—'
+const productName = (v) => v?.name ?? '—'
 
 const filtered = computed(() =>
-  list.value
-    .filter((s) => !from.value || s.docDate >= from.value)
-    .filter((s) => !to.value || s.docDate <= to.value)
-    .filter((s) => `${s.number} ${clientName(s.customer)}`.toLowerCase().includes(search.value.toLowerCase())),
+  pageItems.value.filter((s) => `${s.number} ${clientName(s.customer)}`.toLowerCase().includes(search.value.toLowerCase())),
 )
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex flex-wrap items-center gap-2">
+    <!-- ≥lg: всё в один ряд. -->
+    <div class="hidden flex-wrap items-center gap-2 lg:flex">
       <input v-model="search" class="input max-w-xs" placeholder="Поиск по номеру/клиенту" />
-      <input v-model="from" type="date" class="input max-w-[150px]" />
-      <input v-model="to" type="date" class="input max-w-[150px]" />
+      <DateRangeFilter
+        :month-label="monthLabel"
+        :month-label-short="monthLabelShort"
+        :specific-date="specificDate"
+        @today="applyMonth(0)"
+        @prev="shiftMonth(-1)"
+        @next="shiftMonth(1)"
+        @pick="applySpecificDate"
+      />
       <RouterLink to="/sales/new" class="btn-primary btn-sm ml-auto">Новая продажа</RouterLink>
     </div>
+
+    <!-- <lg: поиск, период и кнопка — раздельными рядами. -->
+    <div class="space-y-2 lg:hidden">
+      <input v-model="search" class="input w-full" placeholder="Поиск по номеру/клиенту" />
+      <div class="flex flex-wrap items-center gap-2">
+        <DateRangeFilter
+          :month-label="monthLabel"
+          :month-label-short="monthLabelShort"
+          :specific-date="specificDate"
+          @today="applyMonth(0)"
+          @prev="shiftMonth(-1)"
+          @next="shiftMonth(1)"
+          @pick="applySpecificDate"
+        />
+      </div>
+      <div class="flex justify-end">
+        <RouterLink to="/sales/new" class="btn-primary btn-sm">Новая продажа</RouterLink>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-400 dark:text-slate-500">
+      Поиск по номеру/клиенту ищет только на текущей странице — переключите страницу, если не нашли
+    </p>
 
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
@@ -140,19 +171,11 @@ const filtered = computed(() =>
               </button>
             </div>
           </div>
-          <div class="mt-2 flex items-center justify-between text-sm">
+          <div class="mt-2 text-sm">
             <span class="tabnum text-slate-700 dark:text-slate-300">
               <template v-if="Number(s.totalUsd) > 0">{{ money(s.totalUsd, 'USD') }}</template>
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"> + </template>
               <template v-if="Number(s.totalUzs) > 0">{{ money(s.totalUzs, 'UZS') }}</template>
-            </span>
-            <span class="tabnum text-amber-600 dark:text-amber-400">
-              <template v-if="remaining(s).USD > 0">{{ money(remaining(s).USD, 'USD') }}</template>
-              <template v-if="remaining(s).USD > 0 && remaining(s).UZS > 0"> + </template>
-              <template v-if="remaining(s).UZS > 0">{{ money(remaining(s).UZS, 'UZS') }}</template>
-              <template v-if="remaining(s).USD <= 0 && remaining(s).UZS <= 0 && s.status === 'posted'">
-                <span class="text-emerald-600 dark:text-emerald-400">оплачено</span>
-              </template>
             </span>
           </div>
         </div>
@@ -167,7 +190,6 @@ const filtered = computed(() =>
             <th class="th">Дата</th>
             <th class="th">Клиент</th>
             <th class="th">Сумма</th>
-            <th class="th">Долг</th>
             <th class="th">Статус</th>
             <th class="th"></th>
           </tr>
@@ -181,14 +203,6 @@ const filtered = computed(() =>
               <template v-if="Number(s.totalUsd) > 0">{{ money(s.totalUsd, 'USD') }}</template>
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"> + </template>
               <template v-if="Number(s.totalUzs) > 0">{{ money(s.totalUzs, 'UZS') }}</template>
-            </td>
-            <td class="td tabnum text-amber-600 dark:text-amber-400">
-              <template v-if="remaining(s).USD > 0">{{ money(remaining(s).USD, 'USD') }}</template>
-              <template v-if="remaining(s).USD > 0 && remaining(s).UZS > 0"> + </template>
-              <template v-if="remaining(s).UZS > 0">{{ money(remaining(s).UZS, 'UZS') }}</template>
-              <template v-if="remaining(s).USD <= 0 && remaining(s).UZS <= 0 && s.status === 'posted'">
-                <span class="text-emerald-600 dark:text-emerald-400">оплачено</span>
-              </template>
             </td>
             <td class="td"><span class="badge" :class="STATUS[s.status].cls">{{ STATUS[s.status].label }}</span></td>
             <td class="td text-right">
@@ -205,25 +219,38 @@ const filtered = computed(() =>
         </tbody>
       </table>
       </div>
-      <EmptyState v-else-if="!loading" icon="cart" title="Продаж пока нет" />
+      <EmptyState v-else-if="!loading && totalItems === 0" icon="cart" title="Продаж пока нет" />
+      <EmptyState v-else-if="!loading" icon="cart" title="Ничего не найдено на этой странице" text="Попробуйте другую страницу или измените поиск" />
+
+      <Pagination :page="page" :total-pages="totalPages" :total-items="totalItems" :page-size="pageSize" @update:page="page = $event" />
     </div>
 
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + clientName(opened.customer)" @close="opened = null">
-      <table class="w-full text-sm">
+      <div class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
+            <div class="tabnum shrink-0 font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</div>
+          </div>
+          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ i.quantity }} × {{ i.price }} {{ i.currency }}</div>
+        </div>
+      </div>
+
+      <table class="hidden w-full text-sm sm:table">
         <thead>
           <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
-            <th class="pb-2">Товар</th>
-            <th class="pb-2">Кол-во</th>
-            <th class="pb-2">Цена</th>
-            <th class="pb-2">Сумма</th>
+            <th class="py-1.5 pr-3">Товар</th>
+            <th class="px-3 py-1.5 text-right">Кол-во</th>
+            <th class="px-3 py-1.5 text-right">Цена</th>
+            <th class="py-1.5 pl-3 text-right">Сумма</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="i in itemsBySale.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
-            <td class="py-1.5">{{ productName(i.product) }}</td>
-            <td class="py-1.5 tabnum">{{ i.quantity }}</td>
-            <td class="py-1.5 tabnum">{{ i.price }} {{ i.currency }}</td>
-            <td class="py-1.5 tabnum">{{ money(i.total, i.currency) }}</td>
+          <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
+            <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.quantity }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.price }} {{ i.currency }}</td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(i.total, i.currency) }}</td>
           </tr>
         </tbody>
       </table>

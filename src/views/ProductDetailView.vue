@@ -5,7 +5,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { date, dateTime, qty, unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { batches, categories, products, stockMovements, suppliers } from '@/api/resources'
+import { batches, categories, products, stockMovements } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 
 const route = useRoute()
@@ -14,7 +14,6 @@ const auth = useAuthStore()
 
 const product = ref(null)
 const categoryList = ref([])
-const supplierList = ref([])
 const productBatches = ref([])
 const movements = ref([])
 const loading = ref(true)
@@ -28,7 +27,6 @@ const MOVE = {
 }
 
 const categoryName = (v) => categoryList.value.find((c) => String(c.id) === String(idFromIri(v)))?.name ?? '—'
-const supplierName = (v) => supplierList.value.find((s) => String(s.id) === String(idFromIri(v)))?.name ?? '—'
 
 async function load() {
   loading.value = true
@@ -39,10 +37,9 @@ async function load() {
     categoryList.value = catList
 
     if (auth.can('batches')) {
-      const [allBatches, allSuppliers] = await Promise.all([batches.list(), suppliers.list()])
-      supplierList.value = allSuppliers
+      const allBatches = await batches.list()
       productBatches.value = allBatches
-        .filter((b) => String(idFromIri(b.product)) === String(p.id))
+        .filter((b) => String(idFromIri(b.product?.['@id'])) === String(p.id))
         .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
     }
     if (auth.can('movements')) {
@@ -60,11 +57,8 @@ async function load() {
 }
 onMounted(load)
 
-function remainingQty(batch) {
-  return movements.value
-    .filter((m) => String(idFromIri(m.batch)) === String(batch.id))
-    .reduce((sum, m) => sum + Number(m.quantity), 0)
-}
+/** Остаток уже приходит в самом батче — пересчитывать через движения не нужно. */
+const remainingQty = (batch) => Number(batch.remainingQty)
 </script>
 
 <template>
@@ -78,12 +72,11 @@ function remainingQty(batch) {
     <div class="card-pad">
       <div class="text-lg font-semibold text-slate-800 dark:text-slate-100">{{ product.name }}</div>
       <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        {{ product.sku }} · {{ categoryName(product.category) }} · 1 {{ unitLabel(product.unit) }} =
-        {{ product.packQty ?? product.pack_qty }} {{ unitLabel(product.packUnit) }}
+        {{ product.sku }} · {{ categoryName(product.category) }}
       </div>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2">
       <div class="card-pad">
         <div class="text-xs text-slate-500 dark:text-slate-400">Мин. остаток</div>
         <div class="mt-1 text-lg font-semibold tabnum">{{ qty(product.minStock) }} {{ unitLabel(product.unit) }}</div>
@@ -93,10 +86,6 @@ function remainingQty(batch) {
         <div class="mt-1 text-lg font-semibold tabnum">
           {{ product.priceUsd ?? '—' }} $ / {{ product.priceUzs ?? '—' }} сум
         </div>
-      </div>
-      <div v-if="auth.can('prices.purchase') && product.purchasePrice !== undefined" class="card-pad">
-        <div class="text-xs text-slate-500 dark:text-slate-400">Закупочная цена</div>
-        <div class="mt-1 text-lg font-semibold tabnum">{{ product.purchasePrice }} {{ product.currency }}</div>
       </div>
     </div>
 
@@ -113,7 +102,7 @@ function remainingQty(batch) {
             <span class="font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</span>
             <span class="tabnum text-sm text-slate-700 dark:text-slate-300">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</span>
           </div>
-          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }} · {{ supplierName(b.supplier) }}</div>
+          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }} · {{ (b.supplier?.name ?? "—") }}</div>
           <div class="mt-0.5 tabnum text-xs text-slate-400 dark:text-slate-500">{{ b.purchasePrice }} {{ b.currency }}</div>
         </div>
       </div>
@@ -134,7 +123,7 @@ function remainingQty(batch) {
             <td class="td text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }}</td>
             <td class="td tabnum">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</td>
             <td class="td tabnum">{{ b.purchasePrice }} {{ b.currency }}</td>
-            <td class="td text-slate-500 dark:text-slate-400">{{ supplierName(b.supplier) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ (b.supplier?.name ?? "—") }}</td>
           </tr>
         </tbody>
       </table>

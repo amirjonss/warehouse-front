@@ -4,13 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { addDays, money, qty, toISODate, unitLabel } from '@/utils/format'
+import { money, qty, toISODate, unitLabel } from '@/utils/format'
 import {
   batches,
   clients,
   exchangeRates,
   products,
-  productStock,
   saleItemAllocations,
   saleItems,
   sales,
@@ -36,45 +35,16 @@ const posting = ref(false)
 
 const line = reactive({ productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
 
-/**
- * Ходовые товары — временно считаем на клиенте по частоте в проведённых
- * продажах за последние 90 дней. Когда на бэкенде появится отдельный
- * эндпоинт (например GET /products/popular), эта функция заменится на
- * один запрос — компонент и остальная логика не изменятся.
- */
-const popularProductIds = ref([])
-
-async function loadPopular() {
-  try {
-    const [allSales, allItems] = await Promise.all([sales.list(), saleItems.list()])
-    const since = toISODate(addDays(new Date(), -90))
-    const postedIds = new Set(
-      allSales.filter((s) => s.status === 'posted' && s.docDate >= since).map((s) => String(s.id)),
-    )
-    const freq = new Map()
-    for (const it of allItems) {
-      if (!postedIds.has(String(idFromIri(it.sale)))) continue
-      const pid = String(idFromIri(it.product))
-      freq.set(pid, (freq.get(pid) ?? 0) + 1)
-    }
-    popularProductIds.value = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([pid]) => pid)
-  } catch {
-    popularProductIds.value = []
-  }
-}
-
 async function load() {
   try {
-    const [c, p, stock, b, rates] = await Promise.all([
+    const [c, p, b, rates] = await Promise.all([
       clients.list(),
       products.list(),
-      productStock().catch(() => []),
       batches.list().catch(() => []),
       exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
     ])
     clientList.value = c
-    const stockById = new Map(stock.map((s) => [String(s.id), s.remainingQty]))
-    productList.value = p.map((prod) => ({ ...prod, remainingQty: stockById.get(String(prod.id)) ?? 0 }))
+    productList.value = p
     batchList.value = b
     referenceRate.value = rates[0]?.rateBuy ?? ''
     line.rate = referenceRate.value
@@ -83,7 +53,6 @@ async function load() {
   }
 }
 load()
-loadPopular()
 
 const loadingDraft = ref(false)
 
@@ -158,12 +127,6 @@ const availableProducts = computed(() => {
   return productList.value.filter((p) => !used.has(String(p.id)))
 })
 
-/** Топ-6 ходовых товаров, которых ещё нет в текущей продаже — быстрые чипы над полем поиска. */
-const quickPicks = computed(() => {
-  const byId = new Map(availableProducts.value.map((p) => [String(p.id), p]))
-  return popularProductIds.value.map((pid) => byId.get(pid)).filter(Boolean).slice(0, 6)
-})
-
 const selectedProduct = computed(() => productList.value.find((p) => String(p.id) === String(line.productId)) ?? null)
 
 function onProductChange() {
@@ -179,11 +142,6 @@ function setCurrency(c) {
   if (!selectedProduct.value) return
   const price = c === 'USD' ? selectedProduct.value.priceUsd : selectedProduct.value.priceUzs
   if (price !== null && price !== undefined) line.price = price
-}
-
-function pickQuick(p) {
-  line.productId = String(p.id)
-  onProductChange()
 }
 
 const lineValid = computed(() => line.productId && Number(line.quantity) > 0 && Number(line.rate) > 0)
@@ -438,20 +396,6 @@ async function post() {
               — указано больше, чем есть в наличии
             </span>
           </p>
-
-          <div v-if="quickPicks.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-            <span class="text-xs text-slate-400 dark:text-slate-500">Часто добавляют:</span>
-            <button
-              v-for="p in quickPicks"
-              :key="p.id"
-              type="button"
-              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-500/50 dark:hover:text-indigo-300"
-              @click="pickQuick(p)"
-            >
-              {{ p.name }}
-              <span class="tabnum text-slate-400 dark:text-slate-500">· {{ qty(p.remainingQty) }}</span>
-            </button>
-          </div>
 
           <p v-if="!header.customerId" class="mt-3 text-xs text-slate-400 dark:text-slate-500">
             Сначала выберите клиента — позиции добавятся в его продажу.

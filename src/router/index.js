@@ -57,6 +57,12 @@ const routes = [
     meta: { title: 'Новый приход', perm: 'receipts.create' },
   },
   {
+    path: '/receipts/:id/edit',
+    name: 'receipt-edit',
+    component: () => import('@/views/ReceiptFormView.vue'),
+    meta: { title: 'Приход', perm: 'receipts.create' },
+  },
+  {
     path: '/sales',
     name: 'sales',
     component: () => import('@/views/SalesView.vue'),

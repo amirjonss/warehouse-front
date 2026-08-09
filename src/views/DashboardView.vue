@@ -5,7 +5,7 @@ import SalesBarChart from '@/components/SalesBarChart.vue'
 import StatCard from '@/components/StatCard.vue'
 import { date, money, toISODate, addDays } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { clientDebt, clients, productStock, profits, sales } from '@/api/resources'
+import { clientDebt, clients, products, profits, sales } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 
 const auth = useAuthStore()
@@ -24,7 +24,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const calls = [sales.list(), productStock(), clientDebt(), clients.list()]
+    const calls = [sales.list(), products.list(), clientDebt(), clients.list()]
     if (auth.can('profits')) calls.push(profits.list())
     const [s, stock, debt, c, p] = await Promise.all(calls)
     allSales.value = s

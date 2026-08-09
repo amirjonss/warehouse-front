@@ -106,9 +106,48 @@ function unwrapCollection(data) {
   return data?.member ?? data?.['hydra:member'] ?? []
 }
 
+const MAX_PAGES = 50 // safety cap — 50 * default itemsPerPage(30) = 1500 записей
+
+/**
+ * Ни одна вьюха на фронте не строит постраничный UI — все грузят список целиком и
+ * фильтруют на клиенте. Бэкенд же пагинирует всё по умолчанию (обычно 30/страница,
+ * ?itemsPerPage= клиент менять не может — так во всём API). Поэтому здесь сама
+ * дотягиваем все страницы, а вызывающему коду отдаём уже полный массив.
+ */
+async function getCollection(path, params) {
+  let page = 1
+  let all = []
+
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const data = await request(path, { method: 'GET', params: { ...params, page } })
+    const items = unwrapCollection(data)
+    all = all.concat(items)
+
+    const totalItems = data?.totalItems ?? data?.['hydra:totalItems']
+    if (items.length === 0 || totalItems === undefined || all.length >= totalItems) break
+    page += 1
+  }
+
+  return all
+}
+
+/**
+ * В отличие от getCollection — один запрос, одна страница. Для настоящей
+ * постраничной загрузки в UI: страница дотягивается только когда пользователь
+ * на неё перешёл, а не вся коллекция разом.
+ */
+async function getPage(path, params) {
+  const data = await request(path, { method: 'GET', params })
+  return {
+    items: unwrapCollection(data),
+    totalItems: data?.totalItems ?? data?.['hydra:totalItems'] ?? 0,
+  }
+}
+
 export const api = {
   get: (path, params) => request(path, { method: 'GET', params }),
-  getCollection: async (path, params) => unwrapCollection(await request(path, { method: 'GET', params })),
+  getCollection,
+  getPage,
   post: (path, body) => request(path, { method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),

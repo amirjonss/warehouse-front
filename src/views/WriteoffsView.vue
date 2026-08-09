@@ -4,14 +4,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { date, money, toISODate } from '@/utils/format'
-import {
-  batches,
-  products,
-  stockMovements,
-  writeoffItems,
-  writeoffs,
-  changeWriteoffStatus,
-} from '@/api/resources'
+import { batches, products, writeoffItems, writeoffs, changeWriteoffStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const REASONS = [
@@ -25,7 +18,6 @@ const REASONS = [
 const list = ref([])
 const productList = ref([])
 const batchList = ref([])
-const remainingByBatch = ref(new Map())
 const itemsByWriteoff = ref(new Map())
 const loading = ref(true)
 const error = ref('')
@@ -44,22 +36,15 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [w, p, b, m, wi] = await Promise.all([
+    const [w, p, b, wi] = await Promise.all([
       writeoffs.list(),
       products.list(),
       batches.list(),
-      stockMovements.list(),
       writeoffItems.list(),
     ])
     list.value = w.sort((a, b2) => b2.docDate.localeCompare(a.docDate))
     productList.value = p
     batchList.value = b
-    const rem = new Map()
-    for (const mv of m) {
-      const id = idFromIri(mv.batch)
-      rem.set(id, (rem.get(id) ?? 0) + Number(mv.quantity))
-    }
-    remainingByBatch.value = rem
     const map = new Map()
     for (const it of wi) {
       const wid = idFromIri(it.writeoff)
@@ -78,12 +63,20 @@ onMounted(load)
 const productName = (v) => productList.value.find((p) => String(p.id) === String(idFromIri(v)))?.name ?? '—'
 const batchNumber = (v) => batchList.value.find((b) => String(b.id) === String(idFromIri(v)))?.number ?? '—'
 
-const batchesForProduct = computed(() =>
-  batchList.value
-    .filter((b) => String(idFromIri(b.product)) === String(line.productId))
-    .map((b) => ({ ...b, stock: remainingByBatch.value.get(String(b.id)) ?? 0 }))
-    .filter((b) => b.stock > 0),
-)
+/*
+ * ВРЕМЕННО: batch.product сейчас приходит с бэкенда как embedded-объект с
+ * фиктивным @id ("/api/products/summary" одинаковый у всех партий), поэтому
+ * сопоставить по ID нельзя — сравниваем по названию товара. Как только
+ * бэкенд начнёт отдавать настоящий IRI, вернуть сравнение по id.
+ */
+const batchesForProduct = computed(() => {
+  const selectedName = productList.value.find((p) => String(p.id) === String(line.productId))?.name
+  if (!selectedName) return []
+  return batchList.value
+    .filter((b) => b.product?.name === selectedName)
+    .map((b) => ({ ...b, stock: Number(b.remainingQty) }))
+    .filter((b) => b.stock > 0)
+})
 const selectedBatch = computed(() => batchesForProduct.value.find((b) => String(b.id) === String(line.batchId)))
 const lineValid = computed(
   () => selectedBatch.value && Number(line.quantity) > 0 && Number(line.quantity) <= selectedBatch.value.stock,
@@ -118,7 +111,8 @@ async function addItem() {
       quantity: String(line.quantity),
     })
     items.value.push(created)
-    remainingByBatch.value.set(String(selectedBatch.value.id), selectedBatch.value.stock - Number(line.quantity))
+    const batch = batchList.value.find((b) => String(b.id) === String(selectedBatch.value.id))
+    if (batch) batch.remainingQty = String(Number(batch.remainingQty) - Number(line.quantity))
     Object.assign(line, { productId: '', batchId: '', quantity: 1 })
   } catch (e) {
     error.value = e.message
@@ -210,19 +204,29 @@ function lossValue(item) {
     </div>
 
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + opened.reason" @close="opened = null">
-      <table class="w-full text-sm">
+      <div class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+        <div v-for="i in itemsByWriteoff.get(String(opened.id)) ?? []" :key="i.id" class="py-2">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
+            <div class="tabnum shrink-0 text-slate-700 dark:text-slate-300">{{ i.quantity }}</div>
+          </div>
+          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }}</div>
+        </div>
+      </div>
+
+      <table class="hidden w-full text-sm sm:table">
         <thead>
           <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
-            <th class="pb-2">Товар</th>
-            <th class="pb-2">Партия</th>
-            <th class="pb-2">Кол-во</th>
+            <th class="py-1.5 pr-3">Товар</th>
+            <th class="px-3 py-1.5">Партия</th>
+            <th class="py-1.5 pl-3 text-right">Кол-во</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="i in itemsByWriteoff.get(String(opened.id)) ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
-            <td class="py-1.5">{{ productName(i.product) }}</td>
-            <td class="py-1.5">{{ batchNumber(i.batch) }}</td>
-            <td class="py-1.5 tabnum">{{ i.quantity }}</td>
+            <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
+            <td class="px-3 py-1.5">{{ batchNumber(i.batch) }}</td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ i.quantity }}</td>
           </tr>
         </tbody>
       </table>
@@ -275,23 +279,35 @@ function lossValue(item) {
           <AppIcon name="plus" :size="16" /> Добавить в списание
         </button>
 
-        <table v-if="items.length" class="w-full text-sm">
+        <div v-if="items.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+          <div v-for="i in items" :key="i.id" class="flex items-center justify-between gap-2 py-2">
+            <div class="min-w-0">
+              <div class="font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
+              <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {{ batchNumber(i.batch) }} · {{ i.quantity }} · {{ money(lossValue(i)) }}
+              </div>
+            </div>
+            <button class="btn-ghost btn-sm shrink-0" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>
+          </div>
+        </div>
+
+        <table v-if="items.length" class="hidden w-full text-sm sm:table">
           <thead>
             <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
-              <th class="pb-2">Товар</th>
-              <th class="pb-2">Партия</th>
-              <th class="pb-2">Кол-во</th>
-              <th class="pb-2">Потери</th>
+              <th class="py-1.5 pr-3">Товар</th>
+              <th class="px-3 py-1.5">Партия</th>
+              <th class="px-3 py-1.5 text-right">Кол-во</th>
+              <th class="px-3 py-1.5 text-right">Потери</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="i in items" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
-              <td class="py-1.5">{{ productName(i.product) }}</td>
-              <td class="py-1.5">{{ batchNumber(i.batch) }}</td>
-              <td class="py-1.5 tabnum">{{ i.quantity }}</td>
-              <td class="py-1.5 tabnum">{{ money(lossValue(i)) }}</td>
-              <td class="py-1.5 text-right"><button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button></td>
+              <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
+              <td class="px-3 py-1.5">{{ batchNumber(i.batch) }}</td>
+              <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.quantity }}</td>
+              <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ money(lossValue(i)) }}</td>
+              <td class="py-1.5 pl-3 text-right"><button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button></td>
             </tr>
           </tbody>
         </table>

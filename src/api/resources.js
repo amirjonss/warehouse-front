@@ -21,8 +21,8 @@ export const profits = createResource('/profits')
 export const debts = createResource('/debts')
 export const users = createResource('/users')
 
-export const productStock = (params) => api.getCollection('/products/stock', params)
 export const clientDebt = (params) => api.getCollection('/clients/debt', params)
+export const productStockSummary = () => api.post('/products/summary')
 
 export const changeReceiptStatus = (id, status) => changeStatus('/receipts', id, status)
 export const changeSaleStatus = (id, status) => changeStatus('/sales', id, status)

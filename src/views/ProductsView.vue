@@ -1,20 +1,21 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Pagination from '@/components/Pagination.vue'
 import { unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { categories, products, productStock } from '@/api/resources'
+import { useDebouncedValue } from '@/composables/useDebouncedValue'
+import { api } from '@/api/client'
+import { categories, products } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const auth = useAuthStore()
 
 const UNITS = ['kg', 'l', 'pcs']
 
-const list = ref([])
 const categoryList = ref([])
-const stockByProduct = ref(new Map())
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
@@ -23,6 +24,41 @@ const modal = ref(false)
 const saving = ref(false)
 const formError = ref('')
 
+const withStock = (p) => ({ ...p, stock: p.remainingQty ?? 0 })
+
+/**
+ * Поиск уходит на бэкенд (?name=...) только от 2 символов и с задержкой —
+ * не гонять запрос на каждое нажатие клавиши. Короче трёх символов и без
+ * фильтра — обычная постраничная загрузка без параметра поиска.
+ */
+const debouncedSearch = useDebouncedValue(search, 300)
+const searchQuery = computed(() => {
+  const s = debouncedSearch.value.trim()
+  return s.length >= 2 ? s : ''
+})
+
+const pageItems = ref([])
+const totalItems = ref(0)
+const page = ref(1)
+const pageSize = 20
+
+async function loadPage(p) {
+  loading.value = true
+  error.value = ''
+  try {
+    const params = { page: p, itemsPerPage: pageSize }
+    if (searchQuery.value) params.name = searchQuery.value
+    if (categoryFilter.value) params['category.id'] = categoryFilter.value
+    const { items, totalItems: total } = await api.getPage('/products', params)
+    pageItems.value = items
+    totalItems.value = total
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
 const blank = () => ({
   id: null,
   sku: '',
@@ -30,47 +66,34 @@ const blank = () => ({
   category: '',
   currency: 'USD',
   unit: 'kg',
-  packQty: 1,
-  packUnit: 'kg',
   minStock: 10,
-  purchasePrice: 0,
   priceUsd: null,
   priceUzs: null,
   isActive: true,
 })
 const form = reactive(blank())
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [productList, catList, stockList] = await Promise.all([
-      products.list(),
-      categories.list(),
-      productStock(),
-    ])
-    list.value = productList
-    categoryList.value = catList
-    stockByProduct.value = new Map(stockList.map((s) => [String(s.id), s]))
-  } catch (e) {
+onMounted(async () => {
+  categoryList.value = await categories.list().catch((e) => {
     error.value = e.message
-  } finally {
-    loading.value = false
-  }
-}
-onMounted(load)
+    return []
+  })
+  await loadPage(1)
+})
 
 const categoryName = (categoryValue) => {
   const id = idFromIri(categoryValue)
   return categoryList.value.find((c) => String(c.id) === String(id))?.name ?? '—'
 }
 
-const filtered = computed(() =>
-  list.value
-    .filter((p) => !categoryFilter.value || idFromIri(p.category) === String(categoryFilter.value))
-    .filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(search.value.toLowerCase()))
-    .map((p) => ({ ...p, stock: stockByProduct.value.get(String(p.id))?.remainingQty ?? 0 })),
-)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize)))
+const paged = computed(() => pageItems.value.map(withStock))
+
+watch([searchQuery, categoryFilter], () => {
+  page.value = 1
+  loadPage(1)
+})
+watch(page, (p) => loadPage(p))
 
 function openNew() {
   Object.assign(form, blank())
@@ -85,10 +108,7 @@ function openEdit(p) {
     category: idFromIri(p.category) ?? '',
     currency: p.currency,
     unit: p.unit,
-    packQty: Number(p.packQty ?? p.pack_qty ?? 1),
-    packUnit: p.packUnit,
     minStock: Number(p.minStock),
-    purchasePrice: p.purchasePrice !== undefined ? Number(p.purchasePrice) : 0,
     priceUsd: p.priceUsd !== null && p.priceUsd !== undefined ? Number(p.priceUsd) : null,
     priceUzs: p.priceUzs !== null && p.priceUzs !== undefined ? Number(p.priceUzs) : null,
     isActive: p.isActive,
@@ -109,10 +129,7 @@ async function save() {
     category: iri('categories', form.category),
     currency: form.currency,
     unit: form.unit,
-    packQty: String(form.packQty),
-    packUnit: form.packUnit,
     minStock: String(form.minStock),
-    purchasePrice: String(form.purchasePrice || 0),
     priceUsd: form.priceUsd === null || form.priceUsd === '' ? null : String(form.priceUsd),
     priceUzs: form.priceUzs === null || form.priceUzs === '' ? null : String(form.priceUzs),
     isActive: form.isActive,
@@ -121,7 +138,7 @@ async function save() {
     if (form.id) await products.update(form.id, payload)
     else await products.create(payload)
     modal.value = false
-    await load()
+    await loadPage(page.value)
   } catch (e) {
     formError.value = e.message
   } finally {
@@ -133,7 +150,7 @@ async function save() {
 <template>
   <div class="space-y-4">
     <div class="flex flex-wrap items-center gap-2">
-      <input v-model="search" class="input max-w-xs" placeholder="Поиск по названию/артикулу" />
+      <input v-model="search" class="input max-w-xs" placeholder="Поиск по названию" />
       <select v-model="categoryFilter" class="input max-w-[180px]">
         <option value="">Все категории</option>
         <option v-for="c in categoryList" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
@@ -146,27 +163,25 @@ async function save() {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <table v-if="filtered.length" class="hidden w-full sm:table">
+      <table v-if="paged.length" class="hidden w-full sm:table">
         <thead>
           <tr>
             <th class="th">Товар</th>
             <th class="th">Категория</th>
-            <th class="th">Упаковка</th>
-            <th v-if="auth.can('prices.purchase')" class="th">Закуп</th>
+            <th class="th">Ед.</th>
             <th class="th">Продажа</th>
             <th class="th">Остаток</th>
             <th class="th"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in filtered" :key="p.id" class="table-row">
+          <tr v-for="p in paged" :key="p.id" class="table-row">
             <td class="td">
               <RouterLink :to="`/products/${p.id}`" class="font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">{{ p.name }}</RouterLink>
               <div class="text-xs text-slate-400 dark:text-slate-500">{{ p.sku }}</div>
             </td>
             <td class="td text-slate-500 dark:text-slate-400">{{ categoryName(p.category) }}</td>
-            <td class="td text-slate-500 dark:text-slate-400">1 {{ unitLabel(p.unit) }} = {{ p.packQty ?? p.pack_qty }} {{ unitLabel(p.packUnit) }}</td>
-            <td v-if="auth.can('prices.purchase')" class="td tabnum">{{ p.purchasePrice }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ unitLabel(p.unit) }}</td>
             <td class="td tabnum">{{ p.priceUsd ?? '—' }} $ / {{ p.priceUzs ?? '—' }} сум</td>
             <td class="td tabnum">{{ p.stock }}</td>
             <td class="td text-right">
@@ -179,7 +194,7 @@ async function save() {
       </table>
 
       <div class="divide-y divide-slate-100 sm:hidden">
-        <RouterLink v-for="p in filtered" :key="p.id" :to="`/products/${p.id}`" class="block px-4 py-3">
+        <RouterLink v-for="p in paged" :key="p.id" :to="`/products/${p.id}`" class="block px-4 py-3">
           <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
           <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
@@ -188,7 +203,15 @@ async function save() {
         </RouterLink>
       </div>
 
-      <EmptyState v-if="!filtered.length && !loading" icon="tag" title="Товары не найдены" />
+      <EmptyState v-if="!paged.length && !loading" icon="tag" title="Товары не найдены" />
+
+      <Pagination
+        :page="page"
+        :total-pages="totalPages"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:page="page = $event"
+      />
     </div>
 
     <ModalDialog v-if="modal" :title="form.id ? 'Товар' : 'Новый товар'" @close="modal = false">
@@ -210,7 +233,7 @@ async function save() {
             </select>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="label">Единица учёта</label>
             <select v-model="form.unit" class="input">
@@ -218,19 +241,9 @@ async function save() {
             </select>
           </div>
           <div>
-            <label class="label">В упаковке</label>
-            <input v-model="form.packQty" type="number" step="0.001" class="input" />
+            <label class="label">Минимальный остаток</label>
+            <input v-model="form.minStock" type="number" step="0.001" class="input" />
           </div>
-          <div>
-            <label class="label">Ед. упаковки</label>
-            <select v-model="form.packUnit" class="input">
-              <option v-for="u in UNITS" :key="u" :value="u">{{ unitLabel(u) }}</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="label">Минимальный остаток</label>
-          <input v-model="form.minStock" type="number" step="0.001" class="input" />
         </div>
         <div>
           <label class="label">Основная валюта</label>
@@ -246,10 +259,6 @@ async function save() {
               {{ c }}
             </button>
           </div>
-        </div>
-        <div v-if="auth.can('prices.purchase')">
-          <label class="label">Закупочная цена (справочно)</label>
-          <input v-model="form.purchasePrice" type="number" step="0.01" class="input" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
