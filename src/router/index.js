@@ -87,6 +87,18 @@ const routes = [
     meta: { title: 'Списания', perm: 'writeoffs' },
   },
   {
+    path: '/writeoffs/new',
+    name: 'writeoff-new',
+    component: () => import('@/views/WriteoffFormView.vue'),
+    meta: { title: 'Новое списание', perm: 'writeoffs.create' },
+  },
+  {
+    path: '/writeoffs/:id/edit',
+    name: 'writeoff-edit',
+    component: () => import('@/views/WriteoffFormView.vue'),
+    meta: { title: 'Списание', perm: 'writeoffs.create' },
+  },
+  {
     path: '/clients',
     name: 'clients',
     component: () => import('@/views/ClientsView.vue'),
