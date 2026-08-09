@@ -57,7 +57,7 @@ async function load() {
 }
 onMounted(load)
 
-/** Остаток уже приходит в самом батче — пересчитывать через движения не нужно. */
+/** Остаток уже приходит в самой партии — пересчитывать через движения не нужно. */
 const remainingQty = (batch) => Number(batch.remainingQty)
 </script>
 

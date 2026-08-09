@@ -5,14 +5,13 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, toISODate } from '@/utils/format'
-import { exchangeRates, products, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
+import { exchangeRates, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const route = useRoute()
 const router = useRouter()
 
 const supplierList = ref([])
-const productList = ref([])
 const referenceRate = ref('')
 const error = ref('')
 
@@ -26,13 +25,11 @@ const line = reactive({ productId: '', quantity: 10, price: '', currency: 'USD',
 
 async function load() {
   try {
-    const [s, p, rates] = await Promise.all([
+    const [s, rates] = await Promise.all([
       suppliers.list(),
-      products.list(),
       exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
     ])
     supplierList.value = s
-    productList.value = p
     referenceRate.value = rates[0]?.rateBuy ?? ''
     line.rate = referenceRate.value
   } catch (e) {
@@ -98,10 +95,7 @@ async function syncHeader() {
   }
 }
 
-const availableProducts = computed(() => {
-  const used = new Set(items.value.map((i) => String(idFromIri(i.product))))
-  return productList.value.filter((p) => !used.has(String(p.id)))
-})
+const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
 const lineValid = computed(() => line.productId && Number(line.quantity) > 0 && Number(line.price) > 0 && Number(line.rate) > 0)
 const canAddLine = computed(() => lineValid.value && !!header.supplierId)
@@ -140,7 +134,7 @@ async function removeItem(item) {
   }
 }
 
-const productName = (v) => productList.value.find((p) => String(p.id) === String(idFromIri(v)))?.name ?? '—'
+const productName = (v) => v?.name ?? '—'
 
 const totals = computed(() => {
   const acc = { USD: 0, UZS: 0 }
@@ -181,7 +175,7 @@ async function post() {
             <div class="flex gap-3">
               <div class="min-w-0 flex-1">
                 <label class="label">Товар</label>
-                <ProductCombobox v-model="line.productId" :options="availableProducts" />
+                <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" />
               </div>
               <div class="w-24 shrink-0">
                 <label class="label">Кол-во</label>
@@ -229,7 +223,7 @@ async function post() {
           <div class="hidden items-end gap-3 xl:flex xl:flex-wrap">
             <div class="min-w-[180px] flex-1 basis-[220px]">
               <label class="label">Товар</label>
-              <ProductCombobox v-model="line.productId" :options="availableProducts" />
+              <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" />
             </div>
             <div class="w-24 shrink-0">
               <label class="label">Кол-во</label>

@@ -5,47 +5,32 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, qty, toISODate, unitLabel } from '@/utils/format'
-import {
-  batches,
-  clients,
-  exchangeRates,
-  products,
-  saleItemAllocations,
-  saleItems,
-  sales,
-  changeSaleStatus,
-} from '@/api/resources'
+import { clients, exchangeRates, saleItems, sales, changeSaleStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const route = useRoute()
 const router = useRouter()
 
 const clientList = ref([])
-const productList = ref([])
-const batchList = ref([])
 const referenceRate = ref('')
 const error = ref('')
 
 const header = reactive({ customerId: '', docDate: toISODate(), note: '' })
 const draft = ref(null)
 const items = ref([])
-const allocationsByItem = ref(new Map())
 const addingItem = ref(false)
 const posting = ref(false)
 
 const line = reactive({ productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
+const selectedProduct = ref(null)
 
 async function load() {
   try {
-    const [c, p, b, rates] = await Promise.all([
+    const [c, rates] = await Promise.all([
       clients.list(),
-      products.list(),
-      batches.list().catch(() => []),
       exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
     ])
     clientList.value = c
-    productList.value = p
-    batchList.value = b
     referenceRate.value = rates[0]?.rateBuy ?? ''
     line.rate = referenceRate.value
   } catch (e) {
@@ -75,17 +60,8 @@ async function loadExistingDraft(id) {
     header.docDate = sale.docDate
     header.note = sale.note ?? ''
 
-    const [allItems, allocs] = await Promise.all([saleItems.list(), saleItemAllocations.list().catch(() => [])])
+    const allItems = await saleItems.list()
     items.value = allItems.filter((it) => String(idFromIri(it.sale)) === String(id))
-
-    const map = new Map()
-    for (const it of items.value) {
-      map.set(
-        String(it.id),
-        allocs.filter((a) => String(idFromIri(a.saleItem)) === String(it.id)),
-      )
-    }
-    allocationsByItem.value = map
   } catch (e) {
     error.value = e.message
   } finally {
@@ -122,16 +98,11 @@ async function syncHeader() {
   }
 }
 
-const availableProducts = computed(() => {
-  const used = new Set(items.value.map((i) => String(idFromIri(i.product))))
-  return productList.value.filter((p) => !used.has(String(p.id)))
-})
+const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
-const selectedProduct = computed(() => productList.value.find((p) => String(p.id) === String(line.productId)) ?? null)
-
-function onProductChange() {
-  const p = productList.value.find((x) => String(x.id) === String(line.productId))
-  if (!p) return
+/** Комбобокс отдаёт полный товар при выборе — берём из него дефолтные валюту/цену, без похода в общий каталог. */
+function onProductSelect(p) {
+  selectedProduct.value = p
   line.currency = p.currency
   line.price = line.currency === 'USD' ? (p.priceUsd ?? '') : (p.priceUzs ?? '')
 }
@@ -163,19 +134,12 @@ async function addItem() {
     if (line.price !== '' && line.price !== null) payload.price = String(line.price)
 
     const created = await saleItems.create(payload)
-    items.value.push(created)
-
-    try {
-      const allocs = await saleItemAllocations.list()
-      allocationsByItem.value.set(
-        String(created.id),
-        allocs.filter((a) => String(idFromIri(a.saleItem)) === String(created.id)),
-      )
-    } catch {
-      /* аллокации не критичны для продолжения */
-    }
+    // product в ответе — голый IRI (Product.name не входит в группу sale-item:read), подставляем
+    // уже известный из комбобокса объект товара, чтобы не ходить за ним отдельно.
+    items.value.push({ ...created, product: selectedProduct.value })
 
     Object.assign(line, { productId: '', quantity: 1, price: '', currency: 'USD', rate: referenceRate.value })
+    selectedProduct.value = null
   } catch (e) {
     error.value = e.message
   } finally {
@@ -218,17 +182,7 @@ async function saveEdit(item) {
       rate: String(editForm.rate),
     })
     const idx = items.value.findIndex((i) => i.id === item.id)
-    if (idx !== -1) items.value[idx] = updated
-
-    try {
-      const allocs = await saleItemAllocations.list()
-      allocationsByItem.value.set(
-        String(item.id),
-        allocs.filter((a) => String(idFromIri(a.saleItem)) === String(item.id)),
-      )
-    } catch {
-      /* аллокации не критичны для продолжения */
-    }
+    if (idx !== -1) items.value[idx] = { ...updated, product: items.value[idx].product }
 
     editingItemId.value = null
   } catch (e) {
@@ -238,8 +192,8 @@ async function saveEdit(item) {
   }
 }
 
-const productName = (v) => productList.value.find((p) => String(p.id) === String(idFromIri(v)))?.name ?? '—'
-const batchNumber = (v) => batchList.value.find((b) => String(b.id) === String(idFromIri(v)))?.number ?? '—'
+const productName = (v) => v?.name ?? '—'
+const batchNumber = (v) => v?.number ?? '—'
 
 const totals = computed(() => {
   const acc = { USD: 0, UZS: 0 }
@@ -282,13 +236,9 @@ async function post() {
                 <label class="label">Товар</label>
                 <ProductCombobox
                   :model-value="line.productId"
-                  :options="availableProducts"
-                  @update:model-value="
-                    (v) => {
-                      line.productId = v
-                      onProductChange()
-                    }
-                  "
+                  :exclude-ids="usedProductIds"
+                  @update:model-value="(v) => (line.productId = v)"
+                  @select="onProductSelect"
                 />
               </div>
               <div class="w-24 shrink-0">
@@ -339,13 +289,9 @@ async function post() {
               <label class="label">Товар</label>
               <ProductCombobox
                 :model-value="line.productId"
-                :options="availableProducts"
-                @update:model-value="
-                  (v) => {
-                    line.productId = v
-                    onProductChange()
-                  }
-                "
+                :exclude-ids="usedProductIds"
+                @update:model-value="(v) => (line.productId = v)"
+                @select="onProductSelect"
               />
             </div>
             <div class="w-24 shrink-0">
@@ -435,8 +381,8 @@ async function post() {
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
-                    <div v-if="allocationsByItem.get(String(i.id))?.length" class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                      <span v-for="a in allocationsByItem.get(String(i.id))" :key="a.id">{{ batchNumber(a.batch) }}: {{ a.quantity }} </span>
+                    <div v-if="i.allocations?.length" class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                      <span v-for="a in i.allocations" :key="a.id">{{ batchNumber(a.batch) }}: {{ a.quantity }} </span>
                     </div>
                   </div>
                   <div class="flex shrink-0 gap-1">
@@ -468,7 +414,7 @@ async function post() {
                 <th class="th">Цена</th>
                 <th class="th">Курс</th>
                 <th class="th">Сумма</th>
-                <th class="th">Списано с батчей</th>
+                <th class="th">Списано с партий</th>
                 <th class="th"></th>
               </tr>
             </thead>
@@ -506,7 +452,7 @@ async function post() {
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>
                   <td class="td text-xs text-slate-500 dark:text-slate-400">
-                    <div v-for="a in allocationsByItem.get(String(i.id)) ?? []" :key="a.id">
+                    <div v-for="a in i.allocations ?? []" :key="a.id">
                       {{ batchNumber(a.batch) }}: {{ a.quantity }}
                     </div>
                   </td>

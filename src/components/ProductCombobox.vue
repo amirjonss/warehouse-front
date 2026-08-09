@@ -2,33 +2,59 @@
 import { computed, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import { qty, unitLabel } from '@/utils/format'
+import { useDebouncedValue } from '@/composables/useDebouncedValue'
+import { api } from '@/api/client'
 
-/** Комбобокс с поиском по названию/артикулу — обычный <select> не тянет сотни товаров. */
+/**
+ * Комбобокс с поиском товара по бэкенду (?name=...) — раньше тянул сюда весь
+ * каталог сразу, теперь ищет по мере ввода, как на странице «Товары».
+ */
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  options: { type: Array, required: true }, // [{ id, name, sku, remainingQty?, unit? }]
+  excludeIds: { type: Array, default: () => [] }, // id уже добавленных в документ товаров — скрываем из подсказок
   placeholder: { type: String, default: 'Начните вводить название' },
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'select'])
 
 const query = ref('')
 const open = ref(false)
 const activeIndex = ref(0)
+const results = ref([])
+const loading = ref(false)
 
-const selected = computed(() => props.options.find((p) => String(p.id) === String(props.modelValue)) ?? null)
+const debouncedQuery = useDebouncedValue(query, 300)
+const searchQuery = computed(() => {
+  const q = debouncedQuery.value.trim()
+  return q.length >= 2 ? q : ''
+})
 
+watch(searchQuery, async (q) => {
+  if (!q) {
+    results.value = []
+    return
+  }
+  loading.value = true
+  try {
+    const { items } = await api.getPage('/products', { page: 1, itemsPerPage: 20, name: q })
+    results.value = items
+  } catch {
+    results.value = []
+  } finally {
+    loading.value = false
+  }
+})
+
+/** Сброс извне (родитель очищает line.productId после добавления позиции). */
 watch(
   () => props.modelValue,
-  () => {
-    query.value = selected.value?.name ?? ''
+  (v) => {
+    if (!v) query.value = ''
   },
-  { immediate: true },
 )
 
 const filtered = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  if (!q || q === selected.value?.name?.toLowerCase()) return props.options
-  return props.options.filter((p) => `${p.name} ${p.sku ?? ''}`.toLowerCase().includes(q))
+  const exclude = new Set((props.excludeIds ?? []).map(String))
+  return results.value.filter((p) => !exclude.has(String(p.id)))
 })
 
 function openList() {
@@ -43,9 +69,10 @@ function onInput() {
 }
 
 function pick(p) {
-  emit('update:modelValue', String(p.id))
   query.value = p.name
   open.value = false
+  emit('update:modelValue', String(p.id))
+  emit('select', p)
 }
 
 function onKeydown(e) {
@@ -65,13 +92,12 @@ function onKeydown(e) {
     if (p) pick(p)
   } else if (e.key === 'Escape') {
     open.value = false
-    query.value = selected.value?.name ?? ''
   }
 }
 
 function onBlur() {
   open.value = false
-  query.value = selected.value?.name ?? ''
+  if (!props.modelValue) query.value = ''
 }
 </script>
 
@@ -120,10 +146,22 @@ function onBlur() {
       </li>
     </ul>
     <div
-      v-else-if="open && !filtered.length"
+      v-else-if="open && loading"
+      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+    >
+      Поиск…
+    </div>
+    <div
+      v-else-if="open && searchQuery && !filtered.length"
       class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
     >
       Ничего не найдено
+    </div>
+    <div
+      v-else-if="open && query.trim() && !searchQuery"
+      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+    >
+      Введите минимум 2 символа
     </div>
   </div>
 </template>

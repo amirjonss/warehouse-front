@@ -61,7 +61,7 @@ async function loadProductsPage(p) {
 }
 
 /**
- * Бэкенд уже отдаёт в каждом батче вложенные product.name и supplier.name —
+ * Бэкенд уже отдаёт в каждой партии вложенные product.name и supplier.name —
  * отдельные запросы за товарами/поставщиками для подписи партий не нужны.
  */
 const withBatchDerived = (b) => ({
