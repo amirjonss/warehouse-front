@@ -2,20 +2,20 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
+import ClientCombobox from '@/components/ClientCombobox.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, qty, toISODate, unitLabel } from '@/utils/format'
-import { clients, exchangeRates, saleItems, sales, changeSaleStatus } from '@/api/resources'
+import { exchangeRates, saleItems, sales, changeSaleStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const route = useRoute()
 const router = useRouter()
 
-const clientList = ref([])
 const referenceRate = ref('')
 const error = ref('')
 
-const header = reactive({ customerId: '', docDate: toISODate(), note: '' })
+const header = reactive({ customerId: '', customerName: '', docDate: toISODate(), note: '' })
 const draft = ref(null)
 const items = ref([])
 const addingItem = ref(false)
@@ -26,11 +26,7 @@ const selectedProduct = ref(null)
 
 async function load() {
   try {
-    const [c, rates] = await Promise.all([
-      clients.list(),
-      exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
-    ])
-    clientList.value = c
+    const rates = await exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 })
     referenceRate.value = rates[0]?.rateBuy ?? ''
     line.rate = referenceRate.value
   } catch (e) {
@@ -38,6 +34,12 @@ async function load() {
   }
 }
 load()
+
+/** Комбобокс отдаёт полного клиента при выборе — сохраняем имя для отображения. */
+function onClientSelect(c) {
+  header.customerName = c.name
+  syncHeader()
+}
 
 const loadingDraft = ref(false)
 
@@ -57,6 +59,7 @@ async function loadExistingDraft(id) {
     }
     draft.value = sale
     header.customerId = String(idFromIri(sale.customer))
+    header.customerName = sale.customer?.name ?? ''
     header.docDate = sale.docDate
     header.note = sale.note ?? ''
 
@@ -486,10 +489,7 @@ async function post() {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 xl:gap-5">
               <div>
                 <label class="label">Клиент</label>
-                <select v-model="header.customerId" class="input" @change="syncHeader">
-                  <option value="" disabled>Выберите клиента</option>
-                  <option v-for="c in clientList" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-                </select>
+                <ClientCombobox v-model="header.customerId" :model-label="header.customerName" @select="onClientSelect" />
               </div>
               <div>
                 <label class="label">Дата</label>

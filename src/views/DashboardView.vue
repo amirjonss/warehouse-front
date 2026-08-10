@@ -5,7 +5,7 @@ import SalesBarChart from '@/components/SalesBarChart.vue'
 import StatCard from '@/components/StatCard.vue'
 import { date, money, toISODate, addDays } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { clientDebt, clients, products, profits, sales } from '@/api/resources'
+import { clients, products, profits, sales } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 
 const auth = useAuthStore()
@@ -18,18 +18,16 @@ const allSales = ref([])
 const allProfits = ref([])
 const stockRows = ref([])
 const clientList = ref([])
-const debtList = ref([])
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const calls = [sales.list(), products.list(), clientDebt(), clients.list()]
+    const calls = [sales.list(), products.list(), clients.list()]
     if (auth.can('profits')) calls.push(profits.list())
-    const [s, stock, debt, c, p] = await Promise.all(calls)
+    const [s, stock, c, p] = await Promise.all(calls)
     allSales.value = s
     stockRows.value = stock
-    debtList.value = debt
     clientList.value = c
     allProfits.value = p ?? []
   } catch (e) {
@@ -69,8 +67,8 @@ const todayProfit = computed(() => {
 const profitLabel = computed(() => dualLabel(todayProfit.value.USD, todayProfit.value.UZS))
 
 const totalDebt = computed(() => ({
-  usd: debtList.value.reduce((s, d) => s + Number(d.debtUsd), 0),
-  uzs: debtList.value.reduce((s, d) => s + Number(d.debtUzs), 0),
+  usd: clientList.value.reduce((s, c) => s + Number(c.debtUsd), 0),
+  uzs: clientList.value.reduce((s, c) => s + Number(c.debtUzs), 0),
 }))
 const debtLabel = computed(() => dualLabel(totalDebt.value.usd, totalDebt.value.uzs))
 

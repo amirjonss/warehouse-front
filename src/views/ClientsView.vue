@@ -1,18 +1,19 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Pagination from '@/components/Pagination.vue'
 import { money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
-import { clientDebt, clients } from '@/api/resources'
+import { useDebouncedValue } from '@/composables/useDebouncedValue'
+import { api } from '@/api/client'
+import { clients } from '@/api/resources'
 
 const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
-const list = ref([])
-const debtByClient = ref(new Map())
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
@@ -23,26 +24,42 @@ const formError = ref('')
 const blank = () => ({ id: null, name: '', contact: '', phone: '', address: '', isActive: true })
 const form = reactive(blank())
 
-async function load() {
+/** Поиск уходит на бэкенд (?name=...) только от 2 символов и с задержкой. */
+const debouncedSearch = useDebouncedValue(search, 300)
+const searchQuery = computed(() => {
+  const s = debouncedSearch.value.trim()
+  return s.length >= 2 ? s : ''
+})
+
+const page = ref(1)
+const pageSize = 20
+const pageItems = ref([])
+const totalItems = ref(0)
+
+async function loadPage(p) {
   loading.value = true
   error.value = ''
   try {
-    const [clientList, debtList] = await Promise.all([clients.list(), clientDebt()])
-    list.value = clientList
-    debtByClient.value = new Map(debtList.map((d) => [String(d.id), d]))
+    const params = { page: p, itemsPerPage: pageSize }
+    if (searchQuery.value) params.name = searchQuery.value
+    const { items, totalItems: total } = await api.getPage('/clients', params)
+    pageItems.value = items
+    totalItems.value = total
   } catch (e) {
     error.value = e.message
   } finally {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(() => loadPage(1))
 
-const filtered = computed(() =>
-  list.value
-    .filter((c) => `${c.name} ${c.contact ?? ''} ${c.phone ?? ''}`.toLowerCase().includes(search.value.toLowerCase()))
-    .map((c) => ({ ...c, debt: debtByClient.value.get(String(c.id)) ?? { debtUsd: '0', debtUzs: '0' } })),
-)
+watch(searchQuery, () => {
+  page.value = 1
+  loadPage(1)
+})
+watch(page, (p) => loadPage(p))
+
+const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize)))
 
 function openNew() {
   Object.assign(form, blank())
@@ -77,7 +94,7 @@ async function save() {
     if (form.id) await clients.update(form.id, payload)
     else await clients.create(payload)
     modal.value = false
-    await load()
+    await loadPage(page.value)
   } catch (e) {
     formError.value = e.message
   } finally {
@@ -89,7 +106,7 @@ async function remove(c) {
   if (!(await confirmStore.ask(`Удалить клиента «${c.name}»?`))) return
   try {
     await clients.remove(c.id)
-    await load()
+    await loadPage(page.value)
   } catch (e) {
     error.value = e.message
   }
@@ -99,7 +116,7 @@ async function remove(c) {
 <template>
   <div class="space-y-4">
     <div class="flex flex-wrap items-center gap-2">
-      <input v-model="search" class="input max-w-xs" placeholder="Поиск по имени/контакту" />
+      <input v-model="search" class="input max-w-xs" placeholder="Поиск по имени" />
       <button v-if="auth.can('clients.edit')" class="btn-primary btn-sm ml-auto" @click="openNew">
         <AppIcon name="plus" :size="16" /> Добавить
       </button>
@@ -107,8 +124,8 @@ async function remove(c) {
 
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
-    <div v-if="filtered.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="c in filtered" :key="c.id" class="card-pad">
+    <div v-if="pageItems.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-for="c in pageItems" :key="c.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">
           <RouterLink :to="`/clients/${c.id}`" class="min-w-0 font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">
             <div class="truncate">{{ c.name }}</div>
@@ -123,16 +140,26 @@ async function remove(c) {
         </div>
         <div class="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5 text-sm">
           <span class="text-slate-500 dark:text-slate-400">Долг</span>
-          <span class="tabnum font-medium" :class="Number(c.debt.debtUsd) > 0 || Number(c.debt.debtUzs) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'">
-            <template v-if="Number(c.debt.debtUsd) > 0">{{ money(c.debt.debtUsd, 'USD') }}</template>
-            <template v-if="Number(c.debt.debtUsd) > 0 && Number(c.debt.debtUzs) > 0"> + </template>
-            <template v-if="Number(c.debt.debtUzs) > 0">{{ money(c.debt.debtUzs, 'UZS') }}</template>
-            <template v-if="Number(c.debt.debtUsd) <= 0 && Number(c.debt.debtUzs) <= 0">рассчитался</template>
+          <span class="tabnum font-medium" :class="Number(c.debtUsd) > 0 || Number(c.debtUzs) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'">
+            <template v-if="Number(c.debtUsd) > 0">{{ money(c.debtUsd, 'USD') }}</template>
+            <template v-if="Number(c.debtUsd) > 0 && Number(c.debtUzs) > 0"> + </template>
+            <template v-if="Number(c.debtUzs) > 0">{{ money(c.debtUzs, 'UZS') }}</template>
+            <template v-if="Number(c.debtUsd) <= 0 && Number(c.debtUzs) <= 0">рассчитался</template>
           </span>
         </div>
       </div>
     </div>
     <EmptyState v-else-if="!loading" icon="users" title="Клиентов пока нет" />
+
+    <Pagination
+      v-if="pageItems.length"
+      class="card"
+      :page="page"
+      :total-pages="totalPages"
+      :total-items="totalItems"
+      :page-size="pageSize"
+      @update:page="page = $event"
+    />
 
     <ModalDialog v-if="modal" :title="form.id ? 'Клиент' : 'Новый клиент'" @close="modal = false">
       <div class="space-y-3">

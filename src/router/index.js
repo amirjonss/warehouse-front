@@ -111,6 +111,18 @@ const routes = [
     meta: { title: 'Карточка клиента', perm: 'clients' },
   },
   {
+    path: '/clients/:id/payment/new',
+    name: 'payment-new',
+    component: () => import('@/views/PaymentFormView.vue'),
+    meta: { title: 'Новый платёж', perm: 'payments.create' },
+  },
+  {
+    path: '/clients/:id/payment/:paymentId/edit',
+    name: 'payment-edit',
+    component: () => import('@/views/PaymentFormView.vue'),
+    meta: { title: 'Платёж', perm: 'payments.create' },
+  },
+  {
     path: '/suppliers',
     name: 'suppliers',
     component: () => import('@/views/SuppliersView.vue'),

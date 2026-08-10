@@ -1,10 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import EmptyState from '@/components/EmptyState.vue'
-import PaymentFormModal from '@/components/PaymentFormModal.vue'
 import { money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { clientDebt } from '@/api/resources'
+import { clients } from '@/api/resources'
 
 const auth = useAuthStore()
 
@@ -13,13 +12,12 @@ const loading = ref(true)
 const error = ref('')
 const search = ref('')
 const currencyFilter = ref('')
-const payFor = ref(null)
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    list.value = await clientDebt()
+    list.value = await clients.list()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -82,7 +80,7 @@ const totals = computed(() => ({
               <div v-if="Number(d.debtUsd) > 0" class="text-amber-600 dark:text-amber-400">{{ money(d.debtUsd, 'USD') }}</div>
               <div v-if="Number(d.debtUzs) > 0" class="text-amber-600 dark:text-amber-400">{{ money(d.debtUzs, 'UZS') }}</div>
             </div>
-            <button v-if="auth.can('payments.create')" class="btn-ghost btn-sm" @click="payFor = d">Оплата</button>
+            <RouterLink v-if="auth.can('payments.create')" :to="`/clients/${d.id}/payment/new`" class="btn-ghost btn-sm">Оплата</RouterLink>
           </div>
         </div>
       </div>
@@ -108,22 +106,14 @@ const totals = computed(() => ({
               {{ Number(d.debtUzs) > 0 ? money(d.debtUzs, 'UZS') : '—' }}
             </td>
             <td class="td text-right">
-              <button v-if="auth.can('payments.create')" class="btn-ghost btn-sm" @click="payFor = d">
+              <RouterLink v-if="auth.can('payments.create')" :to="`/clients/${d.id}/payment/new`" class="btn-ghost btn-sm">
                 Оплата
-              </button>
+              </RouterLink>
             </td>
           </tr>
         </tbody>
       </table>
       <EmptyState v-else-if="!loading" icon="wallet" title="Должников нет" text="Все клиенты рассчитались" />
     </div>
-
-    <PaymentFormModal
-      v-if="payFor"
-      :client-id="payFor.id"
-      :client-name="payFor.name"
-      @close="payFor = null"
-      @saved="load"
-    />
   </div>
 </template>

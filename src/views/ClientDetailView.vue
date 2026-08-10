@@ -3,15 +3,17 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import PaymentFormModal from '@/components/PaymentFormModal.vue'
+import ModalDialog from '@/components/ModalDialog.vue'
 import { date, money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { clients, debts, payments, sales } from '@/api/resources'
-import { idFromIri, iri } from '@/api/iri'
+import { useConfirmStore } from '@/stores/confirm'
+import { clients, debts, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
+import { idFromIri } from '@/api/iri'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const confirmStore = useConfirmStore()
 
 const client = ref(null)
 const clientSales = ref([])
@@ -20,30 +22,36 @@ const debtRows = ref([])
 const loading = ref(true)
 const error = ref('')
 const tab = ref('sales')
-const payModal = ref(false)
+
+const openedPayment = ref(null)
+const openedAllocations = ref([])
+const cancelling = ref(false)
 
 const METHOD = { cash: 'наличные', card: 'карта', transfer: 'перевод' }
-const STATUS = { draft: 'черновик', posted: 'проведено', cancelled: 'отменено' }
+const STATUS = {
+  draft: { label: 'черновик', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+  posted: { label: 'проведено', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' },
+  cancelled: { label: 'отменено', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' },
+}
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const clientIri = iri('clients', route.params.id)
-    const [c, allSales, allPayments, allDebts] = await Promise.all([
+    const [c, mySales, allPayments] = await Promise.all([
       clients.get(route.params.id),
-      sales.list(),
+      sales.list({ customer: route.params.id, 'order[docDate]': 'desc', 'order[id]': 'desc' }),
       payments.list(),
-      debts.list(),
     ])
     client.value = c
-    clientSales.value = allSales
-      .filter((s) => idFromIri(s.customer) === String(route.params.id))
-      .sort((a, b) => b.docDate.localeCompare(a.docDate))
+    clientSales.value = mySales
     clientPayments.value = allPayments
       .filter((p) => idFromIri(p.client) === String(route.params.id))
       .sort((a, b) => b.docDate.localeCompare(a.docDate))
-    debtRows.value = allDebts.filter((d) => idFromIri(d.client) === String(route.params.id))
+
+    // У Debt нет фильтра по client — берём точечно по каждой продаже клиента, а не всю таблицу долгов.
+    const debtsPerSale = await Promise.all(mySales.map((s) => debts.list({ sale: s.id })))
+    debtRows.value = debtsPerSale.flat()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -64,6 +72,48 @@ const balance = computed(() => {
   const uzs = debtRows.value.filter((d) => d.currency === 'UZS').reduce((s, d) => s + Number(d.amount), 0)
   return { usd, uzs }
 })
+
+/** Удалить можно только черновик — проведённый платёж уже закрыл долг по накладным. */
+async function removePaymentDraft(p) {
+  if (!(await confirmStore.ask(`Удалить черновик «${p.number}»?`))) return
+  try {
+    await payments.remove(p.id)
+    clientPayments.value = clientPayments.value.filter((x) => x.id !== p.id)
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+/** Черновик открывается на продолжение, проведённый/отменённый — в режиме просмотра с распределением. */
+async function openPayment(p) {
+  if (p.status === 'draft') {
+    router.push(`/clients/${route.params.id}/payment/${p.id}/edit`)
+    return
+  }
+  openedPayment.value = p
+  try {
+    openedAllocations.value = await paymentAllocations.list({ payment: p.id })
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+const saleNumber = (v) => clientSales.value.find((s) => String(s.id) === String(idFromIri(v)))?.number ?? '—'
+
+/** Отмена платежа возвращает долг по накладным — перезагружаем список продаж/оплат, а не только статус. */
+async function cancelPayment(p) {
+  if (!(await confirmStore.ask(`Отменить платёж «${p.number}»?`))) return
+  cancelling.value = true
+  try {
+    await changePaymentStatus(p.id, 'cancelled')
+    openedPayment.value = null
+    await load()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    cancelling.value = false
+  }
+}
 </script>
 
 <template>
@@ -74,9 +124,9 @@ const balance = computed(() => {
       <button class="btn-ghost btn-sm" @click="router.back()">
         <AppIcon name="chevronLeft" :size="16" /> Назад
       </button>
-      <button v-if="auth.can('payments.create')" class="btn-primary btn-sm" @click="payModal = true">
+      <RouterLink v-if="auth.can('payments.create')" :to="`/clients/${route.params.id}/payment/new`" class="btn-primary btn-sm">
         <AppIcon name="plus" :size="16" /> Принять оплату
-      </button>
+      </RouterLink>
     </div>
 
     <div class="card-pad">
@@ -124,7 +174,7 @@ const balance = computed(() => {
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</div>
               <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</div>
             </div>
-            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[s.status] }}</span>
+            <span class="badge shrink-0" :class="STATUS[s.status].cls">{{ STATUS[s.status].label }}</span>
           </div>
           <div class="mt-2 flex items-center justify-between text-sm">
             <span class="tabnum text-slate-700 dark:text-slate-300">
@@ -165,7 +215,7 @@ const balance = computed(() => {
               <template v-if="saleRemaining(s).uzs > 0"><br />{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
               <template v-if="saleRemaining(s).usd <= 0 && saleRemaining(s).uzs <= 0">—</template>
             </td>
-            <td class="td"><span class="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ STATUS[s.status] }}</span></td>
+            <td class="td"><span class="badge" :class="STATUS[s.status].cls">{{ STATUS[s.status].label }}</span></td>
             <td class="td text-right">
               <RouterLink :to="`/print/sale/${s.id}`" target="_blank" class="btn-ghost btn-sm"><AppIcon name="print" :size="14" /></RouterLink>
             </td>
@@ -177,13 +227,28 @@ const balance = computed(() => {
 
     <div v-else class="card overflow-hidden">
       <div v-if="clientPayments.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
-        <div v-for="p in clientPayments" :key="p.id" class="p-4">
+        <div
+          v-for="p in clientPayments"
+          :key="p.id"
+          class="cursor-pointer p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          @click="openPayment(p)"
+        >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.number }}</div>
               <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(p.docDate) }} · {{ METHOD[p.method] ?? p.method }}</div>
             </div>
-            <span class="badge shrink-0 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ STATUS[p.status] }}</span>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <span class="badge" :class="STATUS[p.status].cls">{{ STATUS[p.status].label }}</span>
+              <button
+                v-if="p.status === 'draft'"
+                class="btn-ghost btn-sm"
+                title="Удалить черновик"
+                @click.stop="removePaymentDraft(p)"
+              >
+                <AppIcon name="trash" :size="14" />
+              </button>
+            </div>
           </div>
           <div class="mt-2 tabnum text-sm text-emerald-600 dark:text-emerald-400">{{ money(p.amount, p.currency) }}</div>
         </div>
@@ -197,27 +262,76 @@ const balance = computed(() => {
             <th class="th">Сумма</th>
             <th class="th">Способ</th>
             <th class="th">Статус</th>
+            <th class="th"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in clientPayments" :key="p.id" class="table-row">
+          <tr
+            v-for="p in clientPayments"
+            :key="p.id"
+            class="table-row cursor-pointer"
+            @click="openPayment(p)"
+          >
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ p.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(p.docDate) }}</td>
             <td class="td tabnum text-emerald-600 dark:text-emerald-400">{{ money(p.amount, p.currency) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ METHOD[p.method] ?? p.method }}</td>
-            <td class="td"><span class="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ STATUS[p.status] }}</span></td>
+            <td class="td"><span class="badge" :class="STATUS[p.status].cls">{{ STATUS[p.status].label }}</span></td>
+            <td class="td text-right">
+              <button
+                v-if="p.status === 'draft'"
+                class="btn-ghost btn-sm"
+                title="Удалить черновик"
+                @click.stop="removePaymentDraft(p)"
+              >
+                <AppIcon name="trash" :size="14" />
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
       <EmptyState v-else icon="wallet" title="Оплат пока нет" />
     </div>
 
-    <PaymentFormModal
-      v-if="payModal"
-      :client-id="client.id"
-      :client-name="client.name"
-      @close="payModal = false"
-      @saved="load"
-    />
+    <ModalDialog
+      v-if="openedPayment"
+      :title="openedPayment.number"
+      :subtitle="date(openedPayment.docDate) + ' · ' + (METHOD[openedPayment.method] ?? openedPayment.method)"
+      @close="openedPayment = null"
+    >
+      <div class="mb-3 flex items-center justify-between">
+        <span class="tabnum text-lg font-semibold text-slate-800 dark:text-slate-100">{{ money(openedPayment.amount, openedPayment.currency) }}</span>
+        <span class="badge" :class="STATUS[openedPayment.status].cls">{{ STATUS[openedPayment.status].label }}</span>
+      </div>
+
+      <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Распределение по накладным</div>
+      <EmptyState v-if="!openedAllocations.length" icon="wallet" title="Распределений нет" />
+      <table v-else class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
+            <th class="py-1.5 pr-3">Накладная</th>
+            <th class="px-3 py-1.5 text-right">Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="a in openedAllocations" :key="a.id" class="border-t border-slate-100 dark:border-slate-800">
+            <td class="py-1.5 pr-3">{{ saleNumber(a.sale) }}</td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(a.amountClosed, a.currency) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <template #footer>
+        <button class="btn-ghost" @click="openedPayment = null">Закрыть</button>
+        <button
+          v-if="openedPayment.status === 'posted' && auth.can('payments.create')"
+          class="btn-danger"
+          :disabled="cancelling"
+          @click="cancelPayment(openedPayment)"
+        >
+          Отменить платёж
+        </button>
+      </template>
+    </ModalDialog>
   </div>
 </template>
