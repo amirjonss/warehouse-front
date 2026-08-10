@@ -148,7 +148,7 @@ export const api = {
   get: (path, params) => request(path, { method: 'GET', params }),
   getCollection,
   getPage,
-  post: (path, body) => request(path, { method: 'POST', body }),
+  post: (path, body, params) => request(path, { method: 'POST', body, params }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),
 }
