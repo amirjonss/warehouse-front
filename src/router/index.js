@@ -147,6 +147,12 @@ const routes = [
     meta: { title: 'Прибыль', perm: 'profits' },
   },
   {
+    path: '/expenses',
+    name: 'expenses',
+    component: () => import('@/views/ExpensesView.vue'),
+    meta: { title: 'Расходы', perm: 'expenses' },
+  },
+  {
     path: '/users',
     name: 'users',
     component: () => import('@/views/UsersView.vue'),

@@ -30,6 +30,7 @@ const PERMISSIONS = {
     'payments.create',
     'movements',
     'profits',
+    'expenses',
     'users',
     'prices.purchase',
   ],
@@ -43,6 +44,7 @@ const PERMISSIONS = {
     'clients.edit',
     'debts',
     'payments.create',
+    'expenses',
   ],
 }
 

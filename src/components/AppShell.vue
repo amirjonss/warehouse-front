@@ -26,6 +26,7 @@ const NAV = [
   { to: '/suppliers', icon: 'truck', label: 'Поставщики', perm: 'suppliers' },
   { to: '/debts', icon: 'wallet', label: 'Долги', perm: 'debts' },
   { to: '/profits', icon: 'trendUp', label: 'Прибыль', perm: 'profits' },
+  { to: '/expenses', icon: 'trendDown', label: 'Расходы', perm: 'expenses' },
   { to: '/movements', icon: 'list', label: 'Журнал движений', perm: 'movements' },
   { to: '/exchange-rates', icon: 'money', label: 'Курсы валют', perm: 'exchangeRates' },
   { to: '/users', icon: 'shield', label: 'Сотрудники', perm: 'users' },
