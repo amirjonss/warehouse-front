@@ -4,6 +4,7 @@ import AppIcon from '@/components/AppIcon.vue'
 defineProps({
   label: String,
   value: [String, Number],
+  subValue: [String, Number],
   hint: String,
   icon: { type: String, default: 'money' },
   tone: { type: String, default: 'blue' }, // blue | green | amber | red | slate
@@ -31,8 +32,11 @@ const TONES = {
     </div>
     <div class="min-w-0">
       <div class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ label }}</div>
-      <div class="tabnum mt-0.5 truncate text-xl font-semibold text-slate-800 sm:text-2xl dark:text-slate-100">
+      <div class="tabnum mt-0.5 break-words text-xl font-semibold text-slate-800 sm:text-2xl dark:text-slate-100">
         {{ value }}
+      </div>
+      <div v-if="subValue" class="tabnum break-words text-sm font-medium text-slate-500 dark:text-slate-400">
+        {{ subValue }}
       </div>
       <div v-if="hint" class="mt-0.5 truncate text-xs text-slate-400 dark:text-slate-500">{{ hint }}</div>
     </div>

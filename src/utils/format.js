@@ -38,6 +38,14 @@ export function money(value, currency = BASE_CURRENCY, options = {}) {
   return withCurrency ? `${s} ${cur.suffix}` : s
 }
 
+/**
+ * Разрядные пробелы только для сум — доллары показываем как есть (raw из API),
+ * их формат по цифрам после запятой не трогаем.
+ */
+export function rawPrice(value, currency) {
+  return currency === 'UZS' ? money(value, 'UZS', { withCurrency: false }) : value
+}
+
 /** Короткая запись для плиток: 12,4 млн / 4,4 тыс $ */
 export function moneyShort(value, currency = BASE_CURRENCY) {
   const n = Number(value) || 0

@@ -4,7 +4,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { dateTime, money } from '@/utils/format'
+import { dateTime, money, rawPrice } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
@@ -190,7 +190,7 @@ async function openProfit(p) {
         </div>
         <div class="flex items-center justify-between">
           <span class="text-slate-500 dark:text-slate-400">Цена</span>
-          <span class="tabnum text-slate-700 dark:text-slate-300">{{ opened.saleItem?.price }} {{ opened.saleItem?.currency }}</span>
+          <span class="tabnum text-slate-700 dark:text-slate-300">{{ rawPrice(opened.saleItem?.price, opened.saleItem?.currency) }} {{ opened.saleItem?.currency }}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-slate-500 dark:text-slate-400">Курс</span>

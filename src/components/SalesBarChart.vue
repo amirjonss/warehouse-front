@@ -6,7 +6,15 @@ import { dateShort, money, moneyShort } from '@/utils/format'
 const props = defineProps({
   data: { type: Array, required: true }, // [{ date, total, count }]
   height: { type: Number, default: 200 },
+  tone: { type: String, default: 'indigo' }, // indigo | red
+  countLabel: { type: String, default: 'продаж' },
 })
+
+const TONES = {
+  indigo: { bar: 'bg-indigo-600', barHover: 'bg-indigo-700' },
+  red: { bar: 'bg-red-500', barHover: 'bg-red-600' },
+}
+const toneClasses = computed(() => TONES[props.tone] ?? TONES.indigo)
 
 const hovered = ref(null)
 
@@ -49,8 +57,8 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
             @mouseleave="hovered = null"
           >
             <div
-              class="w-full rounded-t-[4px] bg-indigo-600 transition-colors"
-              :class="hovered === i ? 'bg-indigo-700' : ''"
+              class="w-full rounded-t-[4px] transition-colors"
+              :class="hovered === i ? toneClasses.barHover : toneClasses.bar"
               :style="{ height: barHeight(d.total) }"
             />
             <!--
@@ -90,7 +98,7 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
     >
       <div class="font-medium text-slate-800 dark:text-slate-100">{{ dateShort(data[hovered].date) }}</div>
       <div class="tabnum mt-0.5 text-slate-600 dark:text-slate-300">{{ money(data[hovered].total) }}</div>
-      <div class="text-slate-400 dark:text-slate-500">{{ data[hovered].count }} продаж</div>
+      <div class="text-slate-400 dark:text-slate-500">{{ data[hovered].count }} {{ countLabel }}</div>
     </div>
   </div>
 </template>

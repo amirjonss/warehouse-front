@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import Pagination from '@/components/Pagination.vue'
-import { qty, stockStatus, unitLabel, date } from '@/utils/format'
+import { qty, rawPrice, stockStatus, unitLabel, date } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
@@ -232,7 +232,7 @@ const totals = computed(() => summary.value)
           <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ b.productName }} · {{ date(b.receivedAt) }}</div>
           <div class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
             {{ b.supplierName }}
-            <template v-if="auth.can('prices.purchase')"> · {{ b.purchasePrice }} {{ b.currency }}</template>
+            <template v-if="auth.can('prices.purchase')"> · {{ rawPrice(b.purchasePrice, b.currency) }} {{ b.currency }}</template>
           </div>
         </div>
       </div>
@@ -254,7 +254,7 @@ const totals = computed(() => summary.value)
             <td class="td text-slate-500 dark:text-slate-400">{{ b.productName }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }}</td>
             <td class="td tabnum">{{ qty(b.stock) }}</td>
-            <td v-if="auth.can('prices.purchase')" class="td tabnum">{{ b.purchasePrice }} {{ b.currency }}</td>
+            <td v-if="auth.can('prices.purchase')" class="td tabnum">{{ rawPrice(b.purchasePrice, b.currency) }} {{ b.currency }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ b.supplierName }}</td>
           </tr>
         </tbody>

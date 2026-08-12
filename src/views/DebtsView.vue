@@ -68,18 +68,18 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
 
 <template>
   <div class="space-y-4">
-    <div class="grid gap-3 sm:grid-cols-3">
-      <div class="card-pad">
+    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Должников</div>
-        <div class="mt-1 text-lg font-semibold">{{ summary.count }}</div>
+        <div class="mt-1 text-base font-semibold sm:text-lg">{{ summary.count }}</div>
       </div>
-      <div class="card-pad">
+      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Долг, $</div>
-        <div class="mt-1 tabnum text-lg font-semibold text-amber-600 dark:text-amber-400">{{ money(summary.totalDebtUsd, 'USD') }}</div>
+        <div class="tabnum mt-1 text-base font-semibold break-words text-amber-600 sm:text-lg dark:text-amber-400">{{ money(summary.totalDebtUsd, 'USD') }}</div>
       </div>
-      <div class="card-pad">
+      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Долг, сум</div>
-        <div class="mt-1 tabnum text-lg font-semibold text-amber-600 dark:text-amber-400">{{ money(summary.totalDebtUzs, 'UZS') }}</div>
+        <div class="tabnum mt-1 text-base font-semibold break-words text-amber-600 sm:text-lg dark:text-amber-400">{{ money(summary.totalDebtUzs, 'UZS') }}</div>
       </div>
     </div>
 

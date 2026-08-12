@@ -1,11 +1,13 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ModalDialog from '@/components/ModalDialog.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { money, toISODate } from '@/utils/format'
-import { exchangeRates, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
+import { money, rawPrice, toISODate } from '@/utils/format'
+import { api } from '@/api/client'
+import { exchangeRates, products, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const route = useRoute()
@@ -21,7 +23,74 @@ const items = ref([])
 const addingItem = ref(false)
 const posting = ref(false)
 
-const line = reactive({ productId: '', quantity: 10, price: '', currency: 'USD', rate: '' })
+const line = reactive({ productId: '', quantity: 10, price: '', currency: 'USD', rate: '', newPriceUsd: '', newPriceUzs: '' })
+const selectedProduct = ref(null)
+const lastPurchase = ref(null)
+
+/** Приход — удобный момент обновить отпускную цену товара вместе с позицией; подсказка «прошлая цена» берётся из последней партии. */
+async function onProductSelect(p) {
+  selectedProduct.value = p
+  line.newPriceUsd = p.priceUsd ?? ''
+  line.newPriceUzs = p.priceUzs ?? ''
+  lastPurchase.value = null
+  try {
+    const { items } = await api.getPage('/batches', { product: p.id, 'order[receivedAt]': 'desc', 'order[id]': 'desc', page: 1 })
+    lastPurchase.value = items[0] ?? null
+  } catch {
+    lastPurchase.value = null
+  }
+}
+
+function priceChanged(newVal, oldVal) {
+  const n = newVal === '' || newVal === null || newVal === undefined ? null : Number(newVal)
+  const o = oldVal === null || oldVal === undefined ? null : Number(oldVal)
+  return n !== o
+}
+
+watch(
+  () => line.productId,
+  (v) => {
+    if (!v) {
+      selectedProduct.value = null
+      lastPurchase.value = null
+    }
+  },
+)
+
+/** Поставщика может не быть в базе — создаём тут же, не уходя со страницы прихода. */
+const newSupplierModal = ref(false)
+const newSupplierForm = reactive({ name: '', contact: '', phone: '', address: '' })
+const savingSupplier = ref(false)
+const newSupplierError = ref('')
+
+function openNewSupplier() {
+  Object.assign(newSupplierForm, { name: '', contact: '', phone: '', address: '' })
+  newSupplierError.value = ''
+  newSupplierModal.value = true
+}
+
+async function saveNewSupplier() {
+  if (!newSupplierForm.name.trim()) return
+  savingSupplier.value = true
+  newSupplierError.value = ''
+  try {
+    const created = await suppliers.create({
+      name: newSupplierForm.name.trim(),
+      contact: newSupplierForm.contact || null,
+      phone: newSupplierForm.phone || null,
+      address: newSupplierForm.address || null,
+      isActive: true,
+    })
+    supplierList.value.push(created)
+    header.supplierId = String(created.id)
+    await syncHeader()
+    newSupplierModal.value = false
+  } catch (e) {
+    newSupplierError.value = e.message
+  } finally {
+    savingSupplier.value = false
+  }
+}
 
 async function load() {
   try {
@@ -115,9 +184,18 @@ async function addItem() {
       rate: line.currency === 'UZS' ? '1' : String(line.rate),
     })
     items.value.push(created)
+    if (selectedProduct.value && (priceChanged(line.newPriceUsd, selectedProduct.value.priceUsd) || priceChanged(line.newPriceUzs, selectedProduct.value.priceUzs))) {
+      await products.update(selectedProduct.value.id, {
+        priceUsd: line.newPriceUsd === '' ? null : String(line.newPriceUsd),
+        priceUzs: line.newPriceUzs === '' ? null : String(line.newPriceUzs),
+      })
+    }
     line.productId = ''
     line.quantity = 10
     line.price = 0
+    line.newPriceUsd = ''
+    line.newPriceUzs = ''
+    selectedProduct.value = null
   } catch (e) {
     error.value = e.message
   } finally {
@@ -175,7 +253,7 @@ async function post() {
             <div class="flex gap-3">
               <div class="min-w-0 flex-1">
                 <label class="label">Товар</label>
-                <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" />
+                <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
               </div>
               <div class="w-24 shrink-0">
                 <label class="label">Кол-во</label>
@@ -183,14 +261,14 @@ async function post() {
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-              <div class="min-w-[100px] flex-1">
+            <div class="flex gap-2">
+              <div class="min-w-0 flex-1">
                 <label class="label">Цена</label>
-                <input v-model="line.price" type="number" step="0.01" class="input" />
+                <input v-model="line.price" type="number" step="0.01" class="input px-2" />
               </div>
-              <div class="min-w-[100px] flex-1">
+              <div class="min-w-0 flex-1">
                 <label class="label">Курс</label>
-                <input v-model="line.rate" type="number" step="0.0001" class="input" :disabled="line.currency === 'UZS'" />
+                <input v-model="line.rate" type="number" step="0.0001" class="input px-2" :disabled="line.currency === 'UZS'" />
               </div>
               <div class="shrink-0">
                 <label class="label">Валюта</label>
@@ -199,7 +277,7 @@ async function post() {
                     v-for="(c, idx) in ['USD', 'UZS']"
                     :key="c"
                     type="button"
-                    class="w-16 text-sm font-medium transition"
+                    class="w-12 text-xs font-medium transition sm:w-16 sm:text-sm"
                     :class="[
                       idx === 1 ? 'border-l border-slate-200 dark:border-slate-700' : '',
                       line.currency === c
@@ -223,7 +301,7 @@ async function post() {
           <div class="hidden items-end gap-3 xl:flex xl:flex-wrap">
             <div class="min-w-[180px] flex-1 basis-[220px]">
               <label class="label">Товар</label>
-              <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" />
+              <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
             </div>
             <div class="w-24 shrink-0">
               <label class="label">Кол-во</label>
@@ -264,6 +342,25 @@ async function post() {
             </div>
           </div>
 
+          <p v-if="lastPurchase" class="tabnum mt-3 text-xs text-slate-400 dark:text-slate-500">Прошлая цена: {{ rawPrice(lastPurchase.purchasePrice, lastPurchase.currency) }} {{ lastPurchase.currency }}</p>
+
+          <div v-if="selectedProduct" class="mt-3 space-y-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+            <div class="text-xs text-slate-500 dark:text-slate-400">
+              Текущая цена продажи:
+              <span class="tabnum font-medium text-slate-700 dark:text-slate-300">{{ selectedProduct.priceUsd ?? '—' }} $ / {{ selectedProduct.priceUzs !== null ? rawPrice(selectedProduct.priceUzs, 'UZS') : '—' }} сум</span>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="min-w-[120px] flex-1">
+                <label class="label">Новая цена, $</label>
+                <input v-model="line.newPriceUsd" type="number" step="0.01" class="input" placeholder="без изменений" />
+              </div>
+              <div class="min-w-[120px] flex-1">
+                <label class="label">Новая цена, сум</label>
+                <input v-model="line.newPriceUzs" type="number" step="1000" class="input" placeholder="без изменений" />
+              </div>
+            </div>
+          </div>
+
           <p v-if="!header.supplierId" class="mt-3 text-xs text-slate-400 dark:text-slate-500">
             Сначала выберите поставщика — позиции добавятся в его приход.
           </p>
@@ -276,7 +373,7 @@ async function post() {
               <div class="min-w-0">
                 <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
                 <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {{ i.quantity }} × {{ i.price }} {{ i.currency }}
+                  {{ i.quantity }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }}
                 </div>
               </div>
               <div class="flex shrink-0 items-center gap-2">
@@ -303,7 +400,7 @@ async function post() {
                 <tr v-for="i in items" :key="i.id" class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
                   <td class="td tabnum">{{ i.quantity }}</td>
-                  <td class="td tabnum">{{ i.price }} {{ i.currency }}</td>
+                  <td class="td tabnum">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>
                   <td class="td text-right">
@@ -331,7 +428,12 @@ async function post() {
             <!-- На планшете (sm+) поставщик и дата встают в один ряд, примечание — отдельной строкой ниже -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 xl:gap-5">
               <div>
-                <label class="label">Поставщик</label>
+                <div class="mb-1.5 flex items-center justify-between">
+                  <label class="label mb-0">Поставщик</label>
+                  <button type="button" class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300" @click="openNewSupplier">
+                    + Новый поставщик
+                  </button>
+                </div>
                 <select v-model="header.supplierId" class="input" @change="syncHeader">
                   <option value="" disabled>Выберите поставщика</option>
                   <option v-for="s in supplierList" :key="s.id" :value="String(s.id)">{{ s.name }}</option>
@@ -384,5 +486,33 @@ async function post() {
         Провести приход
       </button>
     </div>
+
+    <ModalDialog v-if="newSupplierModal" title="Новый поставщик" @close="newSupplierModal = false">
+      <div class="space-y-3">
+        <div>
+          <label class="label">Название</label>
+          <input v-model="newSupplierForm.name" class="input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">Контактное лицо</label>
+            <input v-model="newSupplierForm.contact" class="input" />
+          </div>
+          <div>
+            <label class="label">Телефон</label>
+            <input v-model="newSupplierForm.phone" class="input" />
+          </div>
+        </div>
+        <div>
+          <label class="label">Адрес</label>
+          <input v-model="newSupplierForm.address" class="input" />
+        </div>
+        <p v-if="newSupplierError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ newSupplierError }}</p>
+      </div>
+      <template #footer>
+        <button class="btn-ghost" @click="newSupplierModal = false">Отмена</button>
+        <button class="btn-primary" :disabled="savingSupplier || !newSupplierForm.name.trim()" @click="saveNewSupplier">Сохранить</button>
+      </template>
+    </ModalDialog>
   </div>
 </template>

@@ -8,12 +8,14 @@ import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
 import { date } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
+import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { api } from '@/api/client'
-import { writeoffs } from '@/api/resources'
+import { changeWriteoffStatus, writeoffs } from '@/api/resources'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
 const { from, to, specificDate, monthLabel, monthLabelShort, applyMonth, shiftMonth, applySpecificDate } = useDateRangeFilter()
@@ -21,6 +23,7 @@ const { from, to, specificDate, monthLabel, monthLabelShort, applyMonth, shiftMo
 const loading = ref(true)
 const error = ref('')
 const opened = ref(null)
+const cancelling = ref(false)
 
 const STATUS = {
   draft: { label: 'черновик', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
@@ -88,6 +91,21 @@ async function removeDraft(w) {
     totalItems.value -= 1
   } catch (e) {
     error.value = e.message
+  }
+}
+
+/** Проведённое списание не удаляется — отмена возвращает товар на склад корректирующим движением. */
+async function cancelWriteoff(w) {
+  if (!(await confirmStore.ask(`Отменить списание «${w.number}»? Товар вернётся на склад.`))) return
+  cancelling.value = true
+  try {
+    await changeWriteoffStatus(w.id, 'cancelled')
+    opened.value = null
+    await loadPage(page.value)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    cancelling.value = false
   }
 }
 </script>
@@ -207,6 +225,14 @@ async function removeDraft(w) {
       </table>
       <template #footer>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
+        <button
+          v-if="opened.status === 'posted' && auth.can('writeoffs.create')"
+          class="btn-danger"
+          :disabled="cancelling"
+          @click="cancelWriteoff(opened)"
+        >
+          Отменить списание
+        </button>
       </template>
     </ModalDialog>
   </div>

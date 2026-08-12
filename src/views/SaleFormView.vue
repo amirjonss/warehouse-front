@@ -4,9 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import ClientCombobox from '@/components/ClientCombobox.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ModalDialog from '@/components/ModalDialog.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { money, qty, toISODate, unitLabel } from '@/utils/format'
-import { exchangeRates, saleItems, sales, changeSaleStatus } from '@/api/resources'
+import { money, qty, rawPrice, toISODate, unitLabel } from '@/utils/format'
+import { clients, exchangeRates, paymentAllocations, payments, saleItems, sales, changePaymentStatus, changeSaleStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const route = useRoute()
@@ -39,6 +40,41 @@ load()
 function onClientSelect(c) {
   header.customerName = c.name
   syncHeader()
+}
+
+/** Если нужного клиента ещё нет в базе — создаём его тут же, не уходя со страницы продажи. */
+const newClientModal = ref(false)
+const newClientForm = reactive({ name: '', contact: '', phone: '', address: '' })
+const savingClient = ref(false)
+const newClientError = ref('')
+
+function openNewClient() {
+  Object.assign(newClientForm, { name: '', contact: '', phone: '', address: '' })
+  newClientError.value = ''
+  newClientModal.value = true
+}
+
+async function saveNewClient() {
+  if (!newClientForm.name.trim()) return
+  savingClient.value = true
+  newClientError.value = ''
+  try {
+    const created = await clients.create({
+      name: newClientForm.name.trim(),
+      contact: newClientForm.contact || null,
+      phone: newClientForm.phone || null,
+      address: newClientForm.address || null,
+      isActive: true,
+    })
+    header.customerId = String(created.id)
+    header.customerName = created.name
+    await syncHeader()
+    newClientModal.value = false
+  } catch (e) {
+    newClientError.value = e.message
+  } finally {
+    savingClient.value = false
+  }
 }
 
 const loadingDraft = ref(false)
@@ -204,12 +240,45 @@ const totals = computed(() => {
   return acc
 })
 
+/**
+ * Клиент платит сразу или уходит в долг — решаем до проводки. «Сейчас» показывает
+ * поля оплаты по каждой валюте продажи; «В долг» ничего не добавляет — обычная проводка.
+ */
+const paymentMode = ref('debt') // 'debt' | 'now'
+const payNow = reactive({
+  USD: { amount: '', method: 'cash' },
+  UZS: { amount: '', method: 'cash' },
+})
+
 async function post() {
   if (!draft.value || items.value.length === 0) return
   posting.value = true
   error.value = ''
   try {
     await changeSaleStatus(draft.value.id, 'posted')
+    if (paymentMode.value === 'now') {
+      for (const c of ['USD', 'UZS']) {
+        const total = totals.value[c]
+        if (total <= 0) continue
+        const amount = payNow[c].amount ? Number(payNow[c].amount) : total
+        if (amount <= 0) continue
+        const payment = await payments.create({
+          docDate: header.docDate,
+          client: iri('clients', header.customerId),
+          amount: String(amount),
+          currency: c,
+          method: payNow[c].method,
+        })
+        await paymentAllocations.create({
+          payment: iri('payments', payment.id),
+          sale: iri('sales', draft.value.id),
+          currency: c,
+          amountSpent: String(amount),
+          isRounding: false,
+        })
+        await changePaymentStatus(payment.id, 'posted')
+      }
+    }
     router.push('/sales?doc=' + draft.value.id)
   } catch (e) {
     error.value = e.message
@@ -250,14 +319,14 @@ async function post() {
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-              <div class="min-w-[100px] flex-1">
+            <div class="flex gap-2">
+              <div class="min-w-0 flex-1">
                 <label class="label">Цена</label>
-                <input v-model="line.price" type="number" step="0.01" class="input" placeholder="авто" />
+                <input v-model="line.price" type="number" step="0.01" class="input px-2" placeholder="авто" />
               </div>
-              <div class="min-w-[100px] flex-1">
+              <div class="min-w-0 flex-1">
                 <label class="label">Курс</label>
-                <input v-model="line.rate" type="number" step="0.0001" class="input" />
+                <input v-model="line.rate" type="number" step="0.0001" class="input px-2" />
               </div>
               <div class="shrink-0">
                 <label class="label">Валюта</label>
@@ -266,7 +335,7 @@ async function post() {
                     v-for="(c, idx) in ['USD', 'UZS']"
                     :key="c"
                     type="button"
-                    class="w-16 text-sm font-medium transition"
+                    class="w-12 text-xs font-medium transition sm:w-16 sm:text-sm"
                     :class="[
                       idx === 1 ? 'border-l border-slate-200 dark:border-slate-700' : '',
                       line.currency === c
@@ -397,7 +466,7 @@ async function post() {
                   <div class="text-slate-400 dark:text-slate-500">Кол-во</div>
                   <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ i.quantity }}</div>
                   <div class="text-slate-400 dark:text-slate-500">Цена</div>
-                  <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ i.price }} {{ i.currency }}</div>
+                  <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</div>
                   <div class="text-slate-400 dark:text-slate-500">Курс</div>
                   <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ i.rate }}</div>
                   <div class="text-slate-400 dark:text-slate-500">Сумма</div>
@@ -451,7 +520,7 @@ async function post() {
                 <tr v-else class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
                   <td class="td tabnum">{{ i.quantity }}</td>
-                  <td class="td tabnum">{{ i.price }} {{ i.currency }}</td>
+                  <td class="td tabnum">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>
                   <td class="td text-xs text-slate-500 dark:text-slate-400">
@@ -488,7 +557,12 @@ async function post() {
             <!-- На планшете (sm+) клиент и дата встают в один ряд, примечание — отдельной строкой ниже -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 xl:gap-5">
               <div>
-                <label class="label">Клиент</label>
+                <div class="mb-1.5 flex items-center justify-between">
+                  <label class="label mb-0">Клиент</label>
+                  <button type="button" class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300" @click="openNewClient">
+                    + Новый клиент
+                  </button>
+                </div>
                 <ClientCombobox v-model="header.customerId" :model-label="header.customerName" @select="onClientSelect" />
               </div>
               <div>
@@ -499,6 +573,52 @@ async function post() {
             <div>
               <label class="label">Примечание</label>
               <input v-model="header.note" class="input" placeholder="Необязательно" @change="syncHeader" />
+            </div>
+
+            <!-- Оплата сразу или в долг — решаем до проводки, чтобы не уходить на страницу оплат отдельно -->
+            <div>
+              <label class="label">Оплата</label>
+              <div class="inline-flex w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  class="flex-1 py-2 text-sm font-medium transition"
+                  :class="paymentMode === 'debt' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'"
+                  @click="paymentMode = 'debt'"
+                >
+                  В долг
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 border-l border-slate-200 py-2 text-sm font-medium transition dark:border-slate-700"
+                  :class="paymentMode === 'now' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'"
+                  @click="paymentMode = 'now'"
+                >
+                  Оплата сейчас
+                </button>
+              </div>
+
+              <div v-if="paymentMode === 'now'" class="mt-3 space-y-3">
+                <p v-if="totals.USD <= 0 && totals.UZS <= 0" class="text-xs text-slate-400 dark:text-slate-500">
+                  Добавьте позиции — сумма оплаты подставится автоматически.
+                </p>
+                <div v-for="c in ['USD', 'UZS']" :key="c" v-show="totals[c] > 0" class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                  <div class="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Оплата в {{ c }}</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="label">Сумма</label>
+                      <input v-model="payNow[c].amount" type="number" step="0.01" class="input" :placeholder="String(totals[c])" />
+                    </div>
+                    <div>
+                      <label class="label">Способ</label>
+                      <select v-model="payNow[c].method" class="input">
+                        <option value="cash">Наличные</option>
+                        <option value="card">Карта</option>
+                        <option value="transfer">Перевод</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -514,7 +634,7 @@ async function post() {
               </span>
             </div>
             <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
-              Провести продажу
+              {{ paymentMode === 'now' ? 'Провести и принять оплату' : 'Провести продажу' }}
             </button>
           </div>
         </section>
@@ -535,8 +655,36 @@ async function post() {
         </span>
       </div>
       <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
-        Провести продажу
+        {{ paymentMode === 'now' ? 'Провести и принять оплату' : 'Провести продажу' }}
       </button>
     </div>
+
+    <ModalDialog v-if="newClientModal" title="Новый клиент" @close="newClientModal = false">
+      <div class="space-y-3">
+        <div>
+          <label class="label">Название</label>
+          <input v-model="newClientForm.name" class="input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">Контактное лицо</label>
+            <input v-model="newClientForm.contact" class="input" />
+          </div>
+          <div>
+            <label class="label">Телефон</label>
+            <input v-model="newClientForm.phone" class="input" />
+          </div>
+        </div>
+        <div>
+          <label class="label">Адрес</label>
+          <input v-model="newClientForm.address" class="input" />
+        </div>
+        <p v-if="newClientError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ newClientError }}</p>
+      </div>
+      <template #footer>
+        <button class="btn-ghost" @click="newClientModal = false">Отмена</button>
+        <button class="btn-primary" :disabled="savingClient || !newClientForm.name.trim()" @click="saveNewClient">Сохранить</button>
+      </template>
+    </ModalDialog>
   </div>
 </template>

@@ -6,7 +6,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money } from '@/utils/format'
+import { date, money, rawPrice } from '@/utils/format'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useConfirmStore } from '@/stores/confirm'
@@ -253,7 +253,7 @@ async function removeDraft(r) {
             <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ i.product?.name ?? '—' }}</div>
             <div class="tabnum shrink-0 font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</div>
           </div>
-          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ i.quantity }} × {{ i.price }} {{ i.currency }}</div>
+          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ i.quantity }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }} · курс {{ i.rate }}</div>
         </div>
       </div>
 
@@ -263,6 +263,7 @@ async function removeDraft(r) {
             <th class="py-1.5 pr-3">Товар</th>
             <th class="px-3 py-1.5 text-right">Кол-во</th>
             <th class="px-3 py-1.5 text-right">Цена</th>
+            <th class="px-3 py-1.5 text-right">Курс</th>
             <th class="py-1.5 pl-3 text-right">Сумма</th>
           </tr>
         </thead>
@@ -270,7 +271,8 @@ async function removeDraft(r) {
           <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ i.product?.name ?? '—' }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.quantity }}</td>
-            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.price }} {{ i.currency }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.rate }}</td>
             <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(i.total, i.currency) }}</td>
           </tr>
         </tbody>

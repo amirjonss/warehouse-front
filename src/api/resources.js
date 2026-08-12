@@ -23,9 +23,11 @@ export const users = createResource('/users')
 export const expenses = createResource('/expenses')
 
 export const productStockSummary = () => api.post('/products/summary')
+export const productTopSales = (params) => api.post('/products/top-sales', undefined, params)
 export const clientDebtSummary = () => api.post('/clients/summary')
 export const profitSummary = (params) => api.post('/profits/summary', undefined, params)
 export const expenseSummary = (params) => api.post('/expenses/summary', undefined, params)
+export const expenseDaily = (params) => api.post('/expenses/daily', undefined, params)
 
 export const changeReceiptStatus = (id, status) => changeStatus('/receipts', id, status)
 export const changeSaleStatus = (id, status) => changeStatus('/sales', id, status)

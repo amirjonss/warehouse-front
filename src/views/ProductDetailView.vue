@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { date, dateTime, qty, unitLabel } from '@/utils/format'
+import { date, dateTime, qty, rawPrice, unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
-import { batches, categories, products, stockMovements } from '@/api/resources'
+import { api } from '@/api/client'
+import { batches, categories, products } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 
 const route = useRoute()
@@ -37,17 +38,11 @@ async function load() {
     categoryList.value = catList
 
     if (auth.can('batches')) {
-      const allBatches = await batches.list()
-      productBatches.value = allBatches
-        .filter((b) => String(idFromIri(b.product?.['@id'])) === String(p.id))
-        .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      productBatches.value = await batches.list({ product: p.id, 'order[receivedAt]': 'desc' })
     }
     if (auth.can('movements')) {
-      const allMovements = await stockMovements.list()
-      movements.value = allMovements
-        .filter((m) => String(idFromIri(m.product)) === String(p.id))
-        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
-        .slice(0, 30)
+      const { items } = await api.getPage('/stock_movements', { product: p.id, 'order[occurredAt]': 'desc', 'order[id]': 'desc' })
+      movements.value = items
     }
   } catch (e) {
     error.value = e.message
@@ -84,7 +79,7 @@ const remainingQty = (batch) => Number(batch.remainingQty)
       <div class="card-pad">
         <div class="text-xs text-slate-500 dark:text-slate-400">Цена продажи</div>
         <div class="mt-1 text-lg font-semibold tabnum">
-          {{ product.priceUsd ?? '—' }} $ / {{ product.priceUzs ?? '—' }} сум
+          {{ product.priceUsd ?? '—' }} $ / {{ product.priceUzs !== null ? rawPrice(product.priceUzs, 'UZS') : '—' }} сум
         </div>
       </div>
     </div>
@@ -103,7 +98,7 @@ const remainingQty = (batch) => Number(batch.remainingQty)
             <span class="tabnum text-sm text-slate-700 dark:text-slate-300">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</span>
           </div>
           <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }} · {{ (b.supplier?.name ?? "—") }}</div>
-          <div class="mt-0.5 tabnum text-xs text-slate-400 dark:text-slate-500">{{ b.purchasePrice }} {{ b.currency }}</div>
+          <div class="mt-0.5 tabnum text-xs text-slate-400 dark:text-slate-500">{{ rawPrice(b.purchasePrice, b.currency) }} {{ b.currency }}</div>
         </div>
       </div>
 
@@ -122,7 +117,7 @@ const remainingQty = (batch) => Number(batch.remainingQty)
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(b.receivedAt) }}</td>
             <td class="td tabnum">{{ qty(remainingQty(b)) }} из {{ qty(b.initialQty) }}</td>
-            <td class="td tabnum">{{ b.purchasePrice }} {{ b.currency }}</td>
+            <td class="td tabnum">{{ rawPrice(b.purchasePrice, b.currency) }} {{ b.currency }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ (b.supplier?.name ?? "—") }}</td>
           </tr>
         </tbody>

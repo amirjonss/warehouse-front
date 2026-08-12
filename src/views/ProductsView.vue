@@ -4,14 +4,16 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { unitLabel } from '@/utils/format'
+import { rawPrice, unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirmStore } from '@/stores/confirm'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
 import { categories, products } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 
 const auth = useAuthStore()
+const confirmStore = useConfirmStore()
 
 const UNITS = ['kg', 'l', 'pcs']
 
@@ -145,6 +147,16 @@ async function save() {
     saving.value = false
   }
 }
+
+async function remove(p) {
+  if (!(await confirmStore.ask(`Удалить товар «${p.name}»?`))) return
+  try {
+    await products.remove(p.id)
+    await loadPage(page.value)
+  } catch (e) {
+    error.value = e.message
+  }
+}
 </script>
 
 <template>
@@ -182,25 +194,40 @@ async function save() {
             </td>
             <td class="td text-slate-500 dark:text-slate-400">{{ categoryName(p.category) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ unitLabel(p.unit) }}</td>
-            <td class="td tabnum">{{ p.priceUsd ?? '—' }} $ / {{ p.priceUzs ?? '—' }} сум</td>
+            <td class="td tabnum">{{ p.priceUsd ?? '—' }} $ / {{ p.priceUzs !== null ? rawPrice(p.priceUzs, 'UZS') : '—' }} сум</td>
             <td class="td tabnum">{{ p.stock }}</td>
-            <td class="td text-right">
-              <button v-if="auth.can('products.edit')" class="btn-ghost btn-sm" @click="openEdit(p)">
-                <AppIcon name="edit" :size="14" />
-              </button>
+            <td class="td text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button v-if="auth.can('products.edit')" class="btn-ghost btn-sm" @click="openEdit(p)">
+                  <AppIcon name="edit" :size="14" />
+                </button>
+                <button v-if="auth.can('products.edit')" class="btn-ghost btn-sm" title="Удалить товар" @click="remove(p)">
+                  <AppIcon name="trash" :size="14" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
 
       <div class="divide-y divide-slate-100 sm:hidden">
-        <RouterLink v-for="p in paged" :key="p.id" :to="`/products/${p.id}`" class="block px-4 py-3">
-          <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
-          <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
-            <span class="tabnum">{{ p.stock }} {{ unitLabel(p.unit) }}</span>
+        <div v-for="p in paged" :key="p.id" class="flex items-start gap-2 px-4 py-3">
+          <RouterLink :to="`/products/${p.id}`" class="block min-w-0 flex-1">
+            <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
+            <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
+              <span class="tabnum">{{ p.stock }} {{ unitLabel(p.unit) }}</span>
+            </div>
+          </RouterLink>
+          <div v-if="auth.can('products.edit')" class="flex shrink-0 items-center gap-1.5">
+            <button class="btn-ghost btn-sm" title="Изменить товар" @click="openEdit(p)">
+              <AppIcon name="edit" :size="14" />
+            </button>
+            <button class="btn-ghost btn-sm" title="Удалить товар" @click="remove(p)">
+              <AppIcon name="trash" :size="14" />
+            </button>
           </div>
-        </RouterLink>
+        </div>
       </div>
 
       <EmptyState v-if="!paged.length && !loading" icon="tag" title="Товары не найдены" />
