@@ -306,20 +306,28 @@ async function cancelPayment(p) {
 
       <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Распределение по накладным</div>
       <EmptyState v-if="!openedAllocations.length" icon="wallet" title="Распределений нет" />
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
-            <th class="py-1.5 pr-3">Накладная</th>
-            <th class="px-3 py-1.5 text-right">Сумма</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="a in openedAllocations" :key="a.id" class="border-t border-slate-100 dark:border-slate-800">
-            <td class="py-1.5 pr-3">{{ saleNumber(a.sale) }}</td>
-            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(a.amountClosed, a.currency) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full min-w-[440px] text-sm">
+          <thead>
+            <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
+              <th class="py-1.5 pr-3">Накладная</th>
+              <th class="px-3 py-1.5">Валюта</th>
+              <th class="px-3 py-1.5 text-right">Курс</th>
+              <th class="px-3 py-1.5 text-right">Списано</th>
+              <th class="py-1.5 pl-3 text-right">Закрыто</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="a in openedAllocations" :key="a.id" class="border-t border-slate-100 dark:border-slate-800">
+              <td class="py-1.5 pr-3">{{ saleNumber(a.sale) }}</td>
+              <td class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{{ a.currency }}</td>
+              <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap text-slate-500 dark:text-slate-400">{{ a.payRate ?? '—' }}</td>
+              <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ money(a.amountSpent, openedPayment.currency) }}</td>
+              <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap font-medium">{{ money(a.amountClosed, a.currency) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <template #footer>
         <button class="btn-ghost" @click="openedPayment = null">Закрыть</button>
