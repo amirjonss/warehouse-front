@@ -5,7 +5,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, toISODate } from '@/utils/format'
+import { date, money, toISODate, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { useConfirmStore } from '@/stores/confirm'
@@ -157,7 +157,7 @@ async function remove(e) {
         <div v-for="e in pageItems" :key="e.id" class="flex items-start justify-between gap-2 p-4">
           <div class="min-w-0">
             <div class="break-words font-medium text-slate-800 dark:text-slate-100">{{ e.description }}</div>
-            <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(e.docDate) }}</div>
+            <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(e.docDate) }} · {{ userName(e.createdBy) }}</div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <span class="tabnum text-sm font-semibold text-red-600 dark:text-red-400">{{ money(e.amount) }}</span>
@@ -173,6 +173,7 @@ async function remove(e) {
           <tr>
             <th class="th">Дата</th>
             <th class="th">Описание</th>
+            <th class="th">Сотрудник</th>
             <th class="th">Сумма</th>
             <th class="th"></th>
           </tr>
@@ -181,6 +182,7 @@ async function remove(e) {
           <tr v-for="e in pageItems" :key="e.id" class="table-row">
             <td class="td text-slate-500 dark:text-slate-400">{{ date(e.docDate) }}</td>
             <td class="td text-slate-700 dark:text-slate-300">{{ e.description }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(e.createdBy) }}</td>
             <td class="td tabnum font-medium text-red-600 dark:text-red-400">{{ money(e.amount) }}</td>
             <td class="td text-right">
               <button class="btn-ghost btn-sm" title="Удалить" @click="remove(e)">

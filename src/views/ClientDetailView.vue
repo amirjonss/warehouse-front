@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
-import { date, money } from '@/utils/format'
+import { date, money, userName } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { clients, debts, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
@@ -172,7 +172,7 @@ async function cancelPayment(p) {
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</div>
-              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</div>
+              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(s.docDate) }} · {{ userName(s.soldBy) }}</div>
             </div>
             <span class="badge shrink-0" :class="STATUS[s.status].cls">{{ STATUS[s.status].label }}</span>
           </div>
@@ -195,6 +195,7 @@ async function cancelPayment(p) {
           <tr>
             <th class="th">Накладная</th>
             <th class="th">Дата</th>
+            <th class="th">Продавец</th>
             <th class="th">Сумма</th>
             <th class="th">Долг</th>
             <th class="th">Статус</th>
@@ -205,6 +206,7 @@ async function cancelPayment(p) {
           <tr v-for="s in clientSales" :key="s.id" class="table-row">
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(s.soldBy) }}</td>
             <td class="td tabnum">
               <template v-if="Number(s.totalUsd) > 0">{{ money(s.totalUsd, 'USD') }}</template>
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"><br /></template>
@@ -236,7 +238,7 @@ async function cancelPayment(p) {
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.number }}</div>
-              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(p.docDate) }} · {{ METHOD[p.method] ?? p.method }}</div>
+              <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(p.docDate) }} · {{ METHOD[p.method] ?? p.method }} · {{ userName(p.acceptedBy) }}</div>
             </div>
             <div class="flex shrink-0 items-center gap-1.5">
               <span class="badge" :class="STATUS[p.status].cls">{{ STATUS[p.status].label }}</span>
@@ -261,6 +263,7 @@ async function cancelPayment(p) {
             <th class="th">Дата</th>
             <th class="th">Сумма</th>
             <th class="th">Способ</th>
+            <th class="th">Сотрудник</th>
             <th class="th">Статус</th>
             <th class="th"></th>
           </tr>
@@ -276,6 +279,7 @@ async function cancelPayment(p) {
             <td class="td text-slate-500 dark:text-slate-400">{{ date(p.docDate) }}</td>
             <td class="td tabnum text-emerald-600 dark:text-emerald-400">{{ money(p.amount, p.currency) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ METHOD[p.method] ?? p.method }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(p.acceptedBy) }}</td>
             <td class="td"><span class="badge" :class="STATUS[p.status].cls">{{ STATUS[p.status].label }}</span></td>
             <td class="td text-right">
               <button

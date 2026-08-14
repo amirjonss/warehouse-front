@@ -3,7 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
-import { date } from '@/utils/format'
+import { date, userName } from '@/utils/format'
 import { useConfirmStore } from '@/stores/confirm'
 import { users } from '@/api/resources'
 
@@ -17,7 +17,7 @@ const modal = ref(false)
 const creating = ref(false)
 const formError = ref('')
 
-const form = reactive({ email: '', role: 'ROLE_SALES' })
+const form = reactive({ email: '', firstName: '', lastName: '', role: 'ROLE_SALES' })
 const created = ref(null) // { email, password } — показываем один раз
 
 async function load() {
@@ -41,6 +41,8 @@ function roleOf(u) {
 
 function openNew() {
   form.email = ''
+  form.firstName = ''
+  form.lastName = ''
   form.role = 'ROLE_SALES'
   created.value = null
   formError.value = ''
@@ -48,11 +50,16 @@ function openNew() {
 }
 
 async function save() {
-  if (!form.email.trim()) return
+  if (!form.email.trim() || !form.firstName.trim()) return
   creating.value = true
   formError.value = ''
   try {
-    const result = await users.create({ email: form.email.trim(), roles: [form.role] })
+    const result = await users.create({
+      email: form.email.trim(),
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim() || null,
+      roles: [form.role],
+    })
     created.value = { email: result.email, password: result.password }
     await load()
   } catch (e) {
@@ -98,7 +105,8 @@ function copyPassword() {
       <div v-for="u in list" :key="u.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ u.email }}</div>
+            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ userName(u) }}</div>
+            <div class="truncate text-xs text-slate-500 dark:text-slate-400">{{ u.email }}</div>
             <div class="text-xs text-slate-500 dark:text-slate-400">{{ ROLE_TITLES[roleOf(u)] ?? '—' }}</div>
           </div>
         </div>
@@ -113,6 +121,16 @@ function copyPassword() {
         <div>
           <label class="label">Email</label>
           <input v-model="form.email" type="email" class="input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">Имя</label>
+            <input v-model="form.firstName" class="input" />
+          </div>
+          <div>
+            <label class="label">Фамилия</label>
+            <input v-model="form.lastName" class="input" placeholder="Необязательно" />
+          </div>
         </div>
         <div>
           <label class="label">Роль</label>
@@ -150,7 +168,7 @@ function copyPassword() {
       <template #footer>
         <template v-if="!created">
           <button class="btn-ghost" @click="modal = false">Отмена</button>
-          <button class="btn-primary" :disabled="creating || !form.email.trim()" @click="save">Создать</button>
+          <button class="btn-primary" :disabled="creating || !form.email.trim() || !form.firstName.trim()" @click="save">Создать</button>
         </template>
         <button v-else class="btn-primary" @click="modal = false">Готово</button>
       </template>

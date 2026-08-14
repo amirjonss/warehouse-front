@@ -6,7 +6,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, rawPrice } from '@/utils/format'
+import { date, money, rawPrice, userName } from '@/utils/format'
 import { useConfirmStore } from '@/stores/confirm'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { api } from '@/api/client'
@@ -156,7 +156,7 @@ const filtered = computed(() =>
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</div>
               <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-                {{ date(s.docDate) }} · {{ clientName(s.customer) }}
+                {{ date(s.docDate) }} · {{ clientName(s.customer) }} · {{ userName(s.soldBy) }}
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-1.5">
@@ -189,6 +189,7 @@ const filtered = computed(() =>
             <th class="th">Номер</th>
             <th class="th">Дата</th>
             <th class="th">Клиент</th>
+            <th class="th">Продавец</th>
             <th class="th">Сумма</th>
             <th class="th">Статус</th>
             <th class="th"></th>
@@ -199,6 +200,7 @@ const filtered = computed(() =>
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</td>
             <td class="td text-slate-600 dark:text-slate-400">{{ clientName(s.customer) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(s.soldBy) }}</td>
             <td class="td tabnum">
               <template v-if="Number(s.totalUsd) > 0">{{ money(s.totalUsd, 'USD') }}</template>
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"> + </template>

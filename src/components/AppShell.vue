@@ -5,6 +5,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import RateChip from '@/components/RateChip.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { userName } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,12 +35,12 @@ const NAV = [
 
 const nav = computed(() => NAV.filter((i) => auth.can(i.perm)))
 
-const initials = computed(() =>
-  (auth.user?.email ?? '')
-    .split(/[@.]/)[0]
-    .slice(0, 2)
-    .toUpperCase(),
-)
+const initials = computed(() => {
+  const first = auth.user?.firstName?.[0] ?? ''
+  const last = auth.user?.lastName?.[0] ?? ''
+  if (first) return `${first}${last}`.toUpperCase()
+  return (auth.user?.email ?? '').split(/[@.]/)[0].slice(0, 2).toUpperCase()
+})
 
 const pageTitle = computed(() => route.meta.title ?? '')
 
@@ -91,7 +92,7 @@ function logout() {
       </nav>
 
       <div class="border-t border-slate-200 p-3 dark:border-slate-800">
-        <div class="flex items-center gap-3 rounded-lg px-2 py-2">
+        <RouterLink to="/profile" class="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-100 dark:hover:bg-slate-800">
           <div
             class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
             :class="auth.role === 'ROLE_ADMIN' ? 'bg-indigo-600' : 'bg-emerald-600'"
@@ -99,10 +100,10 @@ function logout() {
             {{ initials }}
           </div>
           <div class="min-w-0 leading-tight">
-            <div class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{{ auth.user?.email }}</div>
+            <div class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{{ auth.user ? userName(auth.user) : '' }}</div>
             <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ auth.roleTitle }}</div>
           </div>
-        </div>
+        </RouterLink>
         <div class="mt-1 flex gap-1">
           <button
             class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"

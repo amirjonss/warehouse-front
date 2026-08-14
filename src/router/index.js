@@ -159,6 +159,12 @@ const routes = [
     meta: { title: 'Сотрудники', perm: 'users' },
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { title: 'Профиль' },
+  },
+  {
     path: '/print/sale/:id',
     name: 'print-sale',
     component: () => import('@/views/InvoicePrintView.vue'),

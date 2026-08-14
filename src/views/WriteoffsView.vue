@@ -6,7 +6,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date } from '@/utils/format'
+import { date, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
@@ -139,7 +139,7 @@ async function cancelWriteoff(w) {
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ w.number }}</div>
-              <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ date(w.docDate) }} · {{ w.reason }}</div>
+              <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{{ date(w.docDate) }} · {{ w.reason }} · {{ userName(w.createdBy) }}</div>
             </div>
             <div class="flex shrink-0 items-center gap-1.5">
               <span class="badge" :class="STATUS[w.status].cls">{{ STATUS[w.status].label }}</span>
@@ -165,6 +165,7 @@ async function cancelWriteoff(w) {
             <th class="th">Номер</th>
             <th class="th">Дата</th>
             <th class="th">Причина</th>
+            <th class="th">Сотрудник</th>
             <th class="th">Позиций</th>
             <th class="th">Статус</th>
             <th class="th"></th>
@@ -175,6 +176,7 @@ async function cancelWriteoff(w) {
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ w.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(w.docDate) }}</td>
             <td class="td text-slate-600 dark:text-slate-400">{{ w.reason }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(w.createdBy) }}</td>
             <td class="td tabnum">{{ w.items?.length ?? 0 }}</td>
             <td class="td"><span class="badge" :class="STATUS[w.status].cls">{{ STATUS[w.status].label }}</span></td>
             <td class="td text-right">

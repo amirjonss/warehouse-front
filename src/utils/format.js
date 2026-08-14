@@ -46,6 +46,14 @@ export function rawPrice(value, currency) {
   return currency === 'UZS' ? money(value, 'UZS', { withCurrency: false }) : value
 }
 
+/** «Имя Ф.» — фамилия только первой буквой с точкой; без фамилии — просто имя. */
+export function userName(u) {
+  if (!u) return '—'
+  const first = u.firstName ?? ''
+  const last = u.lastName ? `${u.lastName.charAt(0).toUpperCase()}.` : ''
+  return [first, last].filter(Boolean).join(' ') || '—'
+}
+
 /** Короткая запись для плиток: 12,4 млн / 4,4 тыс $ */
 export function moneyShort(value, currency = BASE_CURRENCY) {
   const n = Number(value) || 0

@@ -6,7 +6,7 @@ import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, rawPrice } from '@/utils/format'
+import { date, money, rawPrice, userName } from '@/utils/format'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useConfirmStore } from '@/stores/confirm'
@@ -177,7 +177,7 @@ async function removeDraft(r) {
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ r.number }}</div>
               <div class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-                {{ date(r.docDate) }} · {{ supplierName(r) }}
+                {{ date(r.docDate) }} · {{ supplierName(r) }} · {{ userName(r.receivedBy) }}
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-1.5">
@@ -206,6 +206,7 @@ async function removeDraft(r) {
             <th class="th">Номер</th>
             <th class="th">Дата</th>
             <th class="th">Поставщик</th>
+            <th class="th">Сотрудник</th>
             <th class="th">Сумма</th>
             <th class="th">Статус</th>
             <th class="th"></th>
@@ -216,6 +217,7 @@ async function removeDraft(r) {
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ r.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(r.docDate) }}</td>
             <td class="td text-slate-600 dark:text-slate-400">{{ supplierName(r) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ userName(r.receivedBy) }}</td>
             <td class="td tabnum">
               <template v-if="Number(r.totalUsd) > 0">{{ money(r.totalUsd, 'USD') }}</template>
               <template v-if="Number(r.totalUsd) > 0 && Number(r.totalUzs) > 0"> + </template>

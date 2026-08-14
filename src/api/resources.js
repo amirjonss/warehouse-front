@@ -33,3 +33,5 @@ export const changeReceiptStatus = (id, status) => changeStatus('/receipts', id,
 export const changeSaleStatus = (id, status) => changeStatus('/sales', id, status)
 export const changeWriteoffStatus = (id, status) => changeStatus('/writeoffs', id, status)
 export const changePaymentStatus = (id, status) => changeStatus('/payments', id, status)
+
+export const changeUserPassword = (id, payload) => api.patch(`/users/${id}/password`, payload)
