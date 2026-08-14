@@ -12,7 +12,7 @@ const emit = defineEmits(['today', 'prev', 'next', 'pick'])
 <template>
   <button
     type="button"
-    class="hidden shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 sm:block dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+    class="hidden shrink-0 rounded-full border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 sm:block dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
     @click="emit('today')"
   >
     Сегодня

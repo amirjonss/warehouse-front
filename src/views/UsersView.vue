@@ -154,7 +154,7 @@ function copyPassword() {
         <p class="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
           Аккаунт создан. Пароль показывается один раз — сохраните и передайте сотруднику.
         </p>
-        <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+        <div class="rounded-lg border border-slate-300 dark:border-slate-800 p-3">
           <div class="text-xs text-slate-500 dark:text-slate-400">Email</div>
           <div class="font-mono text-sm">{{ created.email }}</div>
           <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">Пароль</div>

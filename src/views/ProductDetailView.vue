@@ -85,8 +85,8 @@ const remainingQty = (batch) => Number(batch.remainingQty)
     </div>
 
     <div v-if="auth.can('batches')" class="card overflow-hidden">
-      <div class="border-b border-slate-100 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Партии</div>
-      <div v-if="productBatches.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div class="border-b border-slate-200 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Партии</div>
+      <div v-if="productBatches.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div
           v-for="b in productBatches"
           :key="b.id"
@@ -126,8 +126,8 @@ const remainingQty = (batch) => Number(batch.remainingQty)
     </div>
 
     <div v-if="auth.can('movements')" class="card overflow-hidden">
-      <div class="border-b border-slate-100 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">История движений</div>
-      <div v-if="movements.length" class="divide-y divide-slate-100">
+      <div class="border-b border-slate-200 dark:border-slate-800 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">История движений</div>
+      <div v-if="movements.length" class="divide-y divide-slate-200">
         <div v-for="m in movements" :key="m.id" class="flex items-center gap-3 px-4 py-2.5">
           <span class="badge shrink-0" :class="MOVE[m.type]?.cls">{{ MOVE[m.type]?.label ?? m.type }}</span>
           <span class="min-w-0 flex-1 truncate text-sm text-slate-600 dark:text-slate-400">{{ m.docNumber }}</span>

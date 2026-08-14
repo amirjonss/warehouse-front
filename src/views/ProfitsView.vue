@@ -126,7 +126,7 @@ async function openProfit(p) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <div v-if="pageItems.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="p in pageItems" :key="p.id" class="cursor-pointer p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50" @click="openProfit(p)">
           <div class="flex items-center justify-between gap-2">
             <span class="badge" :class="TYPE[p.type]?.cls">{{ TYPE[p.type]?.label ?? p.type }}</span>
@@ -200,7 +200,7 @@ async function openProfit(p) {
           <span class="text-slate-500 dark:text-slate-400">Сумма продажи</span>
           <span class="tabnum text-slate-700 dark:text-slate-300">{{ money(opened.saleItem?.total, opened.saleItem?.currency) }}</span>
         </div>
-        <div class="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div class="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
           <span class="text-slate-500 dark:text-slate-400">Тип</span>
           <span class="badge" :class="TYPE[opened.type]?.cls">{{ TYPE[opened.type]?.label ?? opened.type }}</span>
         </div>

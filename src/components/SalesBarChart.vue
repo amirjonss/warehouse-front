@@ -44,7 +44,7 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
       <div class="relative min-w-0 flex-1">
         <!-- Сетка -->
         <div class="absolute inset-0 flex flex-col justify-between" :style="{ height: `${height}px` }">
-          <div v-for="i in 3" :key="i" class="border-t border-slate-100 dark:border-slate-800" />
+          <div v-for="i in 3" :key="i" class="border-t border-slate-200 dark:border-slate-800" />
         </div>
 
         <!-- Столбцы -->
@@ -90,7 +90,7 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
     <!-- Подсказка -->
     <div
       v-if="hovered !== null"
-      class="pointer-events-none absolute top-0 z-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/40"
+      class="pointer-events-none absolute top-0 z-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/40"
       :style="{
         left: `calc(48px + ${((hovered + 0.5) / data.length) * 100}%)`,
         transform: 'translateX(-50%)',

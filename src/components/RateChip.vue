@@ -20,7 +20,7 @@ onMounted(async () => {
   <RouterLink
     v-if="latest"
     :to="auth.can('exchangeRates') ? '/exchange-rates' : ''"
-    class="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs tabnum text-slate-600 sm:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+    class="hidden items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs tabnum text-slate-600 sm:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
     title="Справочный курс дня — не пересчитывает суммы автоматически"
   >
     <span class="text-slate-400 dark:text-slate-500">курс</span>

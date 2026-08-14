@@ -29,7 +29,7 @@ onBeforeUnmount(() => {
       class="relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl dark:bg-slate-900 dark:shadow-black/40"
       :class="props.width"
     >
-      <div class="flex items-start gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+      <div class="flex items-start gap-3 border-b border-slate-300 px-5 py-4 dark:border-slate-800">
         <div class="min-w-0">
           <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">{{ title }}</h3>
           <p v-if="subtitle" class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ subtitle }}</p>
@@ -47,7 +47,7 @@ onBeforeUnmount(() => {
         <slot />
       </div>
 
-      <div v-if="$slots.footer" class="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3.5 dark:border-slate-800">
+      <div v-if="$slots.footer" class="flex items-center justify-end gap-2 border-t border-slate-300 px-5 py-3.5 dark:border-slate-800">
         <slot name="footer" />
       </div>
     </div>

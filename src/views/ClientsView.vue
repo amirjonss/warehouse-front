@@ -138,7 +138,7 @@ async function remove(c) {
         <div v-if="c.phone" class="mt-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <AppIcon name="phone" :size="14" /> {{ c.phone }}
         </div>
-        <div class="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2.5 text-sm">
+        <div class="mt-3 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-2.5 text-sm">
           <span class="text-slate-500 dark:text-slate-400">Долг</span>
           <span class="tabnum font-medium" :class="Number(c.debtUsd) > 0 || Number(c.debtUzs) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'">
             <template v-if="Number(c.debtUsd) > 0">{{ money(c.debtUsd, 'USD') }}</template>

@@ -122,7 +122,7 @@ function onBlur() {
 
     <ul
       v-if="open && filtered.length"
-      class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+      class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-300 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
     >
       <li
         v-for="(p, idx) in filtered"
@@ -147,19 +147,19 @@ function onBlur() {
     </ul>
     <div
       v-else-if="open && loading"
-      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
     >
       Поиск…
     </div>
     <div
       v-else-if="open && searchQuery && !filtered.length"
-      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
     >
       Ничего не найдено
     </div>
     <div
       v-else-if="open && query.trim() && !searchQuery"
-      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+      class="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-400 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
     >
       Введите минимум 2 символа
     </div>

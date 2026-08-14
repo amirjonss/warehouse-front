@@ -58,7 +58,7 @@ function logout() {
   <div class="min-h-screen bg-slate-50 dark:bg-slate-950">
     <!-- Сайдбар: постоянный на десктопе, выдвижной на телефоне -->
     <aside
-      class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-200 bg-slate-50 transition-transform duration-200 lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
+      class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-300 bg-slate-50 transition-transform duration-200 lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
       :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <div class="flex h-16 items-center gap-2.5 px-4">
@@ -91,7 +91,7 @@ function logout() {
         </RouterLink>
       </nav>
 
-      <div class="border-t border-slate-200 p-3 dark:border-slate-800">
+      <div class="border-t border-slate-300 p-3 dark:border-slate-800">
         <RouterLink to="/profile" class="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-100 dark:hover:bg-slate-800">
           <div
             class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
@@ -130,7 +130,7 @@ function logout() {
     <!-- Контент -->
     <div class="lg:pl-[248px]">
       <header
-        class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-slate-800 dark:bg-slate-950/80"
+        class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-300 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-slate-800 dark:bg-slate-950/80"
       >
         <button
           class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden dark:text-slate-300 dark:hover:bg-slate-800"

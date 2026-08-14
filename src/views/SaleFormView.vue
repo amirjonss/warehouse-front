@@ -330,14 +330,14 @@ async function post() {
               </div>
               <div class="shrink-0">
                 <label class="label">Валюта</label>
-                <div class="inline-flex h-[38px] overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <div class="inline-flex h-[38px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700">
                   <button
                     v-for="(c, idx) in ['USD', 'UZS']"
                     :key="c"
                     type="button"
                     class="w-12 text-xs font-medium transition sm:w-16 sm:text-sm"
                     :class="[
-                      idx === 1 ? 'border-l border-slate-200 dark:border-slate-700' : '',
+                      idx === 1 ? 'border-l border-slate-300 dark:border-slate-700' : '',
                       line.currency === c
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
@@ -376,14 +376,14 @@ async function post() {
             </div>
             <div class="shrink-0">
               <label class="label">Валюта</label>
-              <div class="inline-flex h-[38px] overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+              <div class="inline-flex h-[38px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700">
                 <button
                   v-for="(c, idx) in ['USD', 'UZS']"
                   :key="c"
                   type="button"
                   class="w-16 text-sm font-medium transition"
                   :class="[
-                    idx === 1 ? 'border-l border-slate-200 dark:border-slate-700' : '',
+                    idx === 1 ? 'border-l border-slate-300 dark:border-slate-700' : '',
                     line.currency === c
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
@@ -422,7 +422,7 @@ async function post() {
 
         <section class="card flex flex-1 flex-col overflow-hidden rounded-2xl shadow-sm dark:shadow-lg dark:shadow-black/20">
           <!-- Мобильный (< sm): карточки вместо таблицы — без горизонтального скролла -->
-          <div v-if="items.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+          <div v-if="items.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
             <div v-for="i in items" :key="i.id" class="p-4">
               <template v-if="editingItemId === i.id">
                 <div class="mb-3 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
@@ -578,7 +578,7 @@ async function post() {
             <!-- Оплата сразу или в долг — решаем до проводки, чтобы не уходить на страницу оплат отдельно -->
             <div>
               <label class="label">Оплата</label>
-              <div class="inline-flex w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+              <div class="inline-flex w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700">
                 <button
                   type="button"
                   class="flex-1 py-2 text-sm font-medium transition"
@@ -589,7 +589,7 @@ async function post() {
                 </button>
                 <button
                   type="button"
-                  class="flex-1 border-l border-slate-200 py-2 text-sm font-medium transition dark:border-slate-700"
+                  class="flex-1 border-l border-slate-300 py-2 text-sm font-medium transition dark:border-slate-700"
                   :class="paymentMode === 'now' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'"
                   @click="paymentMode = 'now'"
                 >
@@ -601,7 +601,7 @@ async function post() {
                 <p v-if="totals.USD <= 0 && totals.UZS <= 0" class="text-xs text-slate-400 dark:text-slate-500">
                   Добавьте позиции — сумма оплаты подставится автоматически.
                 </p>
-                <div v-for="c in ['USD', 'UZS']" :key="c" v-show="totals[c] > 0" class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <div v-for="c in ['USD', 'UZS']" :key="c" v-show="totals[c] > 0" class="rounded-lg border border-slate-300 p-3 dark:border-slate-800">
                   <div class="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Оплата в {{ c }}</div>
                   <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -623,7 +623,7 @@ async function post() {
           </div>
 
           <!-- На планшете/мобильном итог и кнопка уезжают в закреплённую снизу окна панель ниже -->
-          <div class="mt-auto hidden space-y-3 border-t border-slate-200 pt-5 xl:block dark:border-slate-800">
+          <div class="mt-auto hidden space-y-3 border-t border-slate-300 pt-5 xl:block dark:border-slate-800">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 dark:text-slate-400">Итого</span>
               <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">
@@ -643,7 +643,7 @@ async function post() {
 
     <!-- Закреплённая снизу окна панель с итогом и кнопкой проводки — только на планшете и мобильном -->
     <div
-      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-200 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
+      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-300 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
     >
       <div class="flex items-center justify-between text-sm">
         <span class="text-slate-500 dark:text-slate-400">Итого</span>

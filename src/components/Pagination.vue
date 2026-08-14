@@ -18,7 +18,7 @@ function go(p) {
 <template>
   <div
     v-if="totalPages > 1"
-    class="flex items-center justify-between border-t border-slate-100 px-4 py-3 dark:border-slate-800"
+    class="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-800"
   >
     <span class="tabnum text-xs text-slate-500 dark:text-slate-400">
       {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, totalItems) }} из {{ totalItems }}

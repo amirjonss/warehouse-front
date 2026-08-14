@@ -212,7 +212,7 @@ function numberInWords(n) {
           Сумовая часть: <b>{{ money(sale.totalUzs, 'UZS') }}</b> — {{ amountInWords(sale.totalUzs, 'UZS') }}
         </div>
 
-        <div class="tabnum mt-1.5 border-t border-slate-200 pt-1.5">
+        <div class="tabnum mt-1.5 border-t border-slate-300 pt-1.5">
           Оплачено:
           <b v-if="paid.USD">{{ money(paid.USD, 'USD') }}</b>
           <b v-if="paid.USD && paid.UZS"> + </b>

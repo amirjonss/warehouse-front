@@ -88,7 +88,7 @@ async function remove(c) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <div v-if="list.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="list.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="c in list" :key="c.id" class="flex items-center justify-between gap-2 p-4">
           <div class="min-w-0">
             <div class="font-medium text-slate-800 dark:text-slate-100">{{ c.name }}</div>

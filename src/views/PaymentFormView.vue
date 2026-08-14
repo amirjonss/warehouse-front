@@ -199,7 +199,7 @@ async function post() {
           <div v-if="loadingLines" class="text-sm text-slate-500 dark:text-slate-400">Загрузка…</div>
           <EmptyState v-else-if="!debtLines.length" icon="wallet" title="Нет непогашенных накладных" />
           <div v-else class="space-y-2">
-            <div v-for="line in debtLines" :key="`${line.saleId}:${line.currency}`" class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+            <div v-for="line in debtLines" :key="`${line.saleId}:${line.currency}`" class="rounded-lg border border-slate-300 p-3 dark:border-slate-800">
               <label class="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -288,7 +288,7 @@ async function post() {
           </div>
 
           <!-- На планшете/мобильном кнопка уезжает в закреплённую снизу окна панель ниже -->
-          <div class="mt-auto hidden space-y-3 border-t border-slate-200 pt-5 xl:block dark:border-slate-800">
+          <div class="mt-auto hidden space-y-3 border-t border-slate-300 pt-5 xl:block dark:border-slate-800">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 dark:text-slate-400">Распределено</span>
               <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(totalAllocated, header.currency) }}</span>
@@ -304,7 +304,7 @@ async function post() {
     <!-- Закреплённая снизу окна панель с кнопкой проводки — только на планшете и мобильном -->
     <div
       v-if="!loadingClient"
-      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-200 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
+      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-300 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
     >
       <div class="flex items-center justify-between text-sm">
         <span class="text-slate-500 dark:text-slate-400">Распределено</span>

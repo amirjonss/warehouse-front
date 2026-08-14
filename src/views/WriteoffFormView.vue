@@ -229,7 +229,7 @@ async function post() {
 
         <section class="card flex flex-1 flex-col overflow-hidden rounded-2xl shadow-sm dark:shadow-lg dark:shadow-black/20">
           <!-- Мобильный (< sm): карточки вместо таблицы — без горизонтального скролла -->
-          <div v-if="items.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+          <div v-if="items.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
             <div v-for="i in items" :key="i.id" class="flex items-center justify-between gap-2 p-4">
               <div class="min-w-0">
                 <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
@@ -297,7 +297,7 @@ async function post() {
           </div>
 
           <!-- На планшете/мобильном итог и кнопка уезжают в закреплённую снизу окна панель ниже -->
-          <div class="mt-auto hidden space-y-3 border-t border-slate-200 pt-5 xl:block dark:border-slate-800">
+          <div class="mt-auto hidden space-y-3 border-t border-slate-300 pt-5 xl:block dark:border-slate-800">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 dark:text-slate-400">Потери на сумму</span>
               <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(totalLoss) }}</span>
@@ -312,7 +312,7 @@ async function post() {
 
     <!-- Закреплённая снизу окна панель с итогом и кнопкой проводки — только на планшете и мобильном -->
     <div
-      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-200 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
+      class="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-300 bg-white/95 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 lg:left-[248px] xl:hidden"
     >
       <div class="flex items-center justify-between text-sm">
         <span class="text-slate-500 dark:text-slate-400">Потери на сумму</span>

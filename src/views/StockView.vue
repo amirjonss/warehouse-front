@@ -173,7 +173,7 @@ const totals = computed(() => summary.value)
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="tab === 'products'" class="card overflow-hidden">
-      <div v-if="pagedProducts.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="pagedProducts.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <RouterLink v-for="r in pagedProducts" :key="r.id" :to="`/products/${r.id}`" class="flex items-center justify-between gap-2 p-4">
           <div class="min-w-0">
             <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ r.name }}</div>
@@ -223,7 +223,7 @@ const totals = computed(() => summary.value)
     </div>
 
     <div v-else class="card overflow-hidden">
-      <div v-if="pagedBatches.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="pagedBatches.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="b in pagedBatches" :key="b.id" class="p-4">
           <div class="flex items-center justify-between gap-2">
             <span class="font-medium text-slate-800 dark:text-slate-100">{{ b.number }}</span>

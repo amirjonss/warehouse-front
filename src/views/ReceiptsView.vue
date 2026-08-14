@@ -171,7 +171,7 @@ async function removeDraft(r) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <div v-if="pageItems.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div class="cursor-pointer p-4" v-for="r in pageItems" :key="r.id" @click="openReceipt(r)">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
@@ -249,7 +249,7 @@ async function removeDraft(r) {
     </div>
 
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + supplierName(opened)" @close="opened = null">
-      <div class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ i.product?.name ?? '—' }}</div>
@@ -270,7 +270,7 @@ async function removeDraft(r) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-100 dark:border-slate-800">
+          <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ i.product?.name ?? '—' }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.quantity }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>

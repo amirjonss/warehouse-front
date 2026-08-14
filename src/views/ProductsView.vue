@@ -210,7 +210,7 @@ async function remove(p) {
         </tbody>
       </table>
 
-      <div class="divide-y divide-slate-100 sm:hidden">
+      <div class="divide-y divide-slate-200 sm:hidden">
         <div v-for="p in paged" :key="p.id" class="flex items-start gap-2 px-4 py-3">
           <RouterLink :to="`/products/${p.id}`" class="block min-w-0 flex-1">
             <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>

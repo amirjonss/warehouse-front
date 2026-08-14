@@ -69,15 +69,15 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
 <template>
   <div class="space-y-4">
     <div class="grid grid-cols-3 gap-2 sm:gap-3">
-      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+      <div class="min-w-0 rounded-xl border border-slate-300 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Должников</div>
         <div class="mt-1 text-base font-semibold sm:text-lg">{{ summary.count }}</div>
       </div>
-      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+      <div class="min-w-0 rounded-xl border border-slate-300 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Долг, $</div>
         <div class="tabnum mt-1 text-base font-semibold break-words text-amber-600 sm:text-lg dark:text-amber-400">{{ money(summary.totalDebtUsd, 'USD') }}</div>
       </div>
-      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+      <div class="min-w-0 rounded-xl border border-slate-300 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
         <div class="text-xs text-slate-500 dark:text-slate-400">Долг, сум</div>
         <div class="tabnum mt-1 text-base font-semibold break-words text-amber-600 sm:text-lg dark:text-amber-400">{{ money(summary.totalDebtUzs, 'UZS') }}</div>
       </div>
@@ -88,7 +88,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
-      <div v-if="pageItems.length" class="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+      <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="d in pageItems" :key="d.id" class="flex items-center justify-between gap-2 p-4">
           <RouterLink :to="`/clients/${d.id}`" class="min-w-0 font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">
             {{ d.name }}
