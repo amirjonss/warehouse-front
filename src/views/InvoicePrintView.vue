@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { date, money, pluralRu, qty } from '@/utils/format'
+import { date, dateTime, money, pluralRu, qty } from '@/utils/format'
 import { clients, debts, products, saleItems, sales, users } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 import { usePrinterStore } from '@/stores/printer'
@@ -85,7 +85,7 @@ async function doThermalPrint() {
 
     const bytes = buildSaleReceipt({
       number: sale.value.number,
-      dateStr: date(sale.value.docDate),
+      dateStr: dateTime(sale.value.createdAt ?? sale.value.docDate),
       customer: customer.value?.name ?? '',
       seller: soldByEmail.value,
       items: items.value.map((i) => ({

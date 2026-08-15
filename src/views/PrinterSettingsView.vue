@@ -60,8 +60,8 @@ async function testPrint() {
           </div>
           <div>
             <label class="label">Ширина (символов)</label>
-            <input v-model.number="printer.width" type="number" class="input" placeholder="48" />
-            <p class="mt-1 text-xs text-slate-500">80мм ≈ 48, 58мм ≈ 32</p>
+            <input v-model.number="printer.width" type="number" class="input" placeholder="42" />
+            <p class="mt-1 text-xs text-slate-500">Знаков в строке. Обычно 42 или 48 (зависит от принтера)</p>
           </div>
         </div>
 

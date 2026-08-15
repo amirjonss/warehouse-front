@@ -15,7 +15,7 @@ export const usePrinterStore = defineStore('printer', () => {
 
   const ip = ref(saved.ip ?? '')
   const port = ref(saved.port ?? 9100)
-  const width = ref(saved.width ?? 48) // символов в строке: 80mm ≈ 48, 58mm ≈ 32
+  const width = ref(saved.width ?? 42) // символов в строке (зависит от принтера/шрифта): часто 42 или 48
 
   watch([ip, port, width], () => {
     localStorage.setItem(
