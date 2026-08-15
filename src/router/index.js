@@ -165,6 +165,12 @@ const routes = [
     meta: { title: 'Профиль' },
   },
   {
+    path: '/settings/printer',
+    name: 'printer-settings',
+    component: () => import('@/views/PrinterSettingsView.vue'),
+    meta: { title: 'Настройки принтера' },
+  },
+  {
     path: '/print/sale/:id',
     name: 'print-sale',
     component: () => import('@/views/InvoicePrintView.vue'),

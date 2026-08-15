@@ -6,8 +6,14 @@ import EmptyState from '@/components/EmptyState.vue'
 import { date, money, pluralRu, qty } from '@/utils/format'
 import { clients, debts, products, saleItems, sales, users } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
+import { usePrinterStore } from '@/stores/printer'
+import { buildSaleReceipt, printBytes, canPrint } from '@/utils/printer'
 
 const route = useRoute()
+const printer = usePrinterStore()
+const canThermalPrint = canPrint()
+const thermalPrinting = ref(false)
+const thermalError = ref('')
 
 const sale = ref(null)
 const customer = ref(null)
@@ -55,6 +61,51 @@ const productName = (v) => productList.value.find((p) => String(p.id) === String
 
 const doPrint = () => window.print()
 const doClose = () => window.close()
+
+async function doThermalPrint() {
+  thermalError.value = ''
+  if (!printer.ip) {
+    thermalError.value = 'Не указан IP принтера (Настройки → Принтер)'
+    return
+  }
+  thermalPrinting.value = true
+  try {
+    const totals = []
+    if (Number(sale.value.totalUsd) > 0)
+      totals.push({ label: 'Итого $', value: money(sale.value.totalUsd, 'USD') })
+    if (Number(sale.value.totalUzs) > 0)
+      totals.push({ label: 'Итого сўм', value: money(sale.value.totalUzs, 'UZS') })
+
+    const paidParts = []
+    if (paid.value.USD) paidParts.push(money(paid.value.USD, 'USD'))
+    if (paid.value.UZS) paidParts.push(money(paid.value.UZS, 'UZS'))
+    const debtParts = []
+    if (rest.value.USD) debtParts.push(money(rest.value.USD, 'USD'))
+    if (rest.value.UZS) debtParts.push(money(rest.value.UZS, 'UZS'))
+
+    const bytes = buildSaleReceipt({
+      number: sale.value.number,
+      dateStr: date(sale.value.docDate),
+      customer: customer.value?.name ?? '',
+      seller: soldByEmail.value,
+      items: items.value.map((i) => ({
+        name: productName(i.product),
+        qty: qty(i.quantity),
+        price: money(i.price, i.currency),
+        total: money(i.total, i.currency),
+      })),
+      totals,
+      paid: paidParts.join(' + '),
+      debt: debtParts.join(' + '),
+      width: Number(printer.width),
+    })
+    await printBytes({ ip: printer.ip, port: printer.port, bytes })
+  } catch (e) {
+    thermalError.value = e.message
+  } finally {
+    thermalPrinting.value = false
+  }
+}
 
 function amountInWords(value, currency = 'UZS') {
   const whole = Math.floor(Math.abs(value))
@@ -135,8 +186,12 @@ function numberInWords(n) {
       <button class="btn-primary" @click="doPrint">
         <AppIcon name="print" :size="17" /> Печать
       </button>
+      <button v-if="canThermalPrint" class="btn-primary" :disabled="thermalPrinting" @click="doThermalPrint">
+        <AppIcon name="print" :size="17" /> {{ thermalPrinting ? 'Печать…' : 'Чек 80мм' }}
+      </button>
       <button class="btn-ghost dark:border-slate-300 dark:bg-white dark:text-slate-700 dark:hover:bg-slate-50" @click="doClose">Закрыть</button>
     </div>
+    <div v-if="thermalError" class="no-print mx-auto mb-4 max-w-3xl rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ thermalError }}</div>
 
     <div class="print-area mx-auto max-w-3xl bg-white p-6 shadow-sm sm:p-10 dark:bg-white">
       <div class="flex items-start justify-between border-b-2 border-slate-800 pb-4">
