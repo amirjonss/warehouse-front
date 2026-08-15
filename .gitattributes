@@ -1,0 +1,21 @@
+# Единые правила переносов строк для всего репозитория.
+# По умолчанию: git сам определяет текстовые файлы и хранит их с LF.
+* text=auto eol=lf
+
+# Windows-скрипты обязаны оставаться с CRLF, иначе ломаются на Windows.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Бинарные файлы — git не трогает переносы строк в них.
+*.jar      binary
+*.keystore binary
+*.jks       binary
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.webp     binary
+*.woff     binary
+*.woff2    binary
+*.ttf      binary
