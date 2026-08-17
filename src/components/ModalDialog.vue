@@ -43,7 +43,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-5 py-4">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4">
         <slot />
       </div>
 

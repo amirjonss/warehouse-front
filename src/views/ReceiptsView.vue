@@ -248,7 +248,7 @@ async function removeDraft(r) {
       />
     </div>
 
-    <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + supplierName(opened)" @close="opened = null">
+    <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + supplierName(opened)" width="max-w-2xl" @close="opened = null">
       <div class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
           <div class="flex items-start justify-between gap-2">

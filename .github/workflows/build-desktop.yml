@@ -1,0 +1,45 @@
+name: Build desktop installers
+
+# Собирает десктопные установщики в облаке (чистая сеть, без Wine, без локальных зависаний):
+#  - macOS  → .dmg
+#  - Windows → .exe (NSIS)
+# Запуск: вручную (Actions → Run workflow) или пушем тега вида v1.0.0.
+# Готовые файлы — во вкладке Actions → конкретный запуск → Artifacts.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Build .dmg
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false # без платной подписи Apple
+        run: npm run electron:build:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wirehouse-macOS-dmg
+          path: dist-electron/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Build .exe
+        run: npm run electron:build:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wirehouse-Windows-exe
+          path: dist-electron/*.exe

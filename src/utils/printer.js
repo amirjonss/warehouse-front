@@ -10,9 +10,14 @@ export { buildTestReceipt, buildSaleReceipt } from './receipt.js'
  */
 const ThermalPrinter = registerPlugin('ThermalPrinter')
 
-/** Печать возможна только внутри Android-приложения (в вебе нет raw-сокетов). */
+/** Есть ли десктопный (Electron) мост печати. */
+function isElectron() {
+  return typeof window !== 'undefined' && window.electronPrinter?.isElectron === true
+}
+
+/** Печать доступна в приложении (Android или десктоп), но не в обычном браузере. */
 export function canPrint() {
-  return Capacitor.isNativePlatform()
+  return Capacitor.isNativePlatform() || isElectron()
 }
 
 /** Uint8Array → base64 (для передачи бинарных данных через мост Capacitor). */
@@ -27,11 +32,15 @@ function toBase64(bytes) {
  * @param {{ip:string, port?:number, bytes:Uint8Array}} p
  */
 export async function printBytes({ ip, port = 9100, bytes }) {
-  if (!canPrint()) {
-    throw new Error('Печать доступна только в Android-приложении')
-  }
   if (!ip) {
     throw new Error('Не указан IP принтера (Настройки → Принтер)')
   }
-  return ThermalPrinter.print({ ip, port: Number(port), data: toBase64(bytes) })
+  const dataBase64 = toBase64(bytes)
+  if (isElectron()) {
+    return window.electronPrinter.print({ ip, port: Number(port), dataBase64 })
+  }
+  if (Capacitor.isNativePlatform()) {
+    return ThermalPrinter.print({ ip, port: Number(port), data: dataBase64 })
+  }
+  throw new Error('Печать доступна только в приложении (десктоп или Android)')
 }

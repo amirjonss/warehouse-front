@@ -6,14 +6,22 @@ import RateChip from '@/components/RateChip.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { userName } from '@/utils/format'
+import { canPrint } from '@/utils/printer'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const theme = useThemeStore()
 
+// Печать (и её настройки) доступны только в приложении: десктоп или Android.
+// В обычном браузере скрываем — там принтер настроить всё равно нельзя.
+const showPrinter = canPrint()
+
 const drawerOpen = ref(false)
 watch(() => route.fullPath, () => (drawerOpen.value = false))
+
+const profileMenuOpen = ref(false)
+watch(() => route.fullPath, () => (profileMenuOpen.value = false))
 
 const NAV = [
   { to: '/', icon: 'dashboard', label: 'Дашборд', perm: 'dashboard' },
@@ -91,33 +99,45 @@ function logout() {
         </RouterLink>
       </nav>
 
-      <div class="border-t border-slate-300 p-3 dark:border-slate-800">
-        <RouterLink to="/profile" class="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-100 dark:hover:bg-slate-800">
+      <div class="relative border-t border-slate-300 p-3 dark:border-slate-800">
+        <!-- Клик вне меню закрывает его -->
+        <div v-if="profileMenuOpen" class="fixed inset-0 z-40" @click="profileMenuOpen = false" />
+
+        <div
+          v-if="profileMenuOpen"
+          class="absolute right-3 bottom-full left-3 z-50 mb-1 space-y-1 rounded-lg border border-slate-300 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+        >
+          <RouterLink to="/profile" class="nav-link !px-2 !py-1.5 !text-xs">
+            <AppIcon name="users" :size="15" /> Профиль
+          </RouterLink>
+          <RouterLink v-if="showPrinter" to="/settings/printer" class="nav-link !px-2 !py-1.5 !text-xs">
+            <AppIcon name="print" :size="15" /> Настройки принтера
+          </RouterLink>
+          <button class="nav-link w-full !px-2 !py-1.5 !text-xs" @click="theme.toggle">
+            <AppIcon :name="theme.dark ? 'sun' : 'moon'" :size="15" /> {{ theme.dark ? 'Светлая тема' : 'Тёмная тема' }}
+          </button>
+          <button class="nav-link w-full !px-2 !py-1.5 !text-xs" @click="logout">
+            <AppIcon name="logout" :size="15" /> Выйти
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-800"
+          @click="profileMenuOpen = !profileMenuOpen"
+        >
           <div
             class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
             :class="auth.role === 'ROLE_ADMIN' ? 'bg-indigo-600' : 'bg-emerald-600'"
           >
             {{ initials }}
           </div>
-          <div class="min-w-0 leading-tight">
+          <div class="min-w-0 flex-1 leading-tight">
             <div class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{{ auth.user ? userName(auth.user) : '' }}</div>
             <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ auth.roleTitle }}</div>
           </div>
-        </RouterLink>
-        <div class="mt-1 flex gap-1">
-          <button
-            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-            @click="theme.toggle"
-          >
-            <AppIcon :name="theme.dark ? 'sun' : 'moon'" :size="15" /> {{ theme.dark ? 'Светлая' : 'Тёмная' }}
-          </button>
-          <button
-            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-            @click="logout"
-          >
-            <AppIcon name="logout" :size="15" /> Выйти
-          </button>
-        </div>
+          <AppIcon name="chevronLeft" :size="14" class="shrink-0 rotate-90 text-slate-400 dark:text-slate-500" />
+        </button>
       </div>
     </aside>
 
