@@ -6,6 +6,9 @@ import EmptyState from '@/components/EmptyState.vue'
 import { money, toISODate } from '@/utils/format'
 import { clients, debts, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
+import { useToastStore } from '@/stores/toast'
+
+const toast = useToastStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -82,7 +85,7 @@ async function loadExistingDraft(paymentId) {
   header.amount = payment.amount
   header.currency = payment.currency
   header.method = payment.method
-  header.docDate = payment.docDate
+  header.docDate = toISODate(payment.docDate)
 
   const allocs = await paymentAllocations.list({ payment: paymentId })
   for (const a of allocs) {
@@ -170,6 +173,7 @@ async function post() {
     await saveAllocations()
     if (!draft.value) draft.value = await ensureDraft()
     await changePaymentStatus(draft.value.id, 'posted')
+    toast.success(`${draft.value.number} проведён`)
     router.push(`/clients/${route.params.id}`)
   } catch (e) {
     error.value = e.message

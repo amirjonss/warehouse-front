@@ -4,9 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, rawPrice, userName } from '@/utils/format'
+import { date, money, qty, rawPrice, userName } from '@/utils/format'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useConfirmStore } from '@/stores/confirm'
@@ -171,6 +172,7 @@ async function removeDraft(r) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !pageItems.length" />
       <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div class="cursor-pointer p-4" v-for="r in pageItems" :key="r.id" @click="openReceipt(r)">
           <div class="flex items-start justify-between gap-2">
@@ -255,7 +257,7 @@ async function removeDraft(r) {
             <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ i.product?.name ?? '—' }}</div>
             <div class="tabnum shrink-0 font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</div>
           </div>
-          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ i.quantity }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }} · курс {{ i.rate }}</div>
+          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ qty(i.quantity) }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }} · курс {{ i.rate }}</div>
         </div>
       </div>
 
@@ -272,7 +274,7 @@ async function removeDraft(r) {
         <tbody>
           <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ i.product?.name ?? '—' }}</td>
-            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.quantity }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ qty(i.quantity) }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ i.rate }}</td>
             <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(i.total, i.currency) }}</td>

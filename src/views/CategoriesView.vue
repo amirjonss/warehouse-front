@@ -2,10 +2,12 @@
 import { onMounted, reactive, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { categories } from '@/api/resources'
+import { slugify } from '@/utils/format'
 
 const auth = useAuthStore()
 const confirmStore = useConfirmStore()
@@ -45,11 +47,11 @@ function openEdit(c) {
 }
 
 async function save() {
-  if (!form.name.trim() || !form.slug.trim()) return
+  if (!form.name.trim()) return
   saving.value = true
   formError.value = ''
   const payload = {
-    slug: form.slug.trim(),
+    slug: form.id ? form.slug : slugify(form.name.trim()),
     name: form.name.trim(),
     sortOrder: form.sortOrder === null || form.sortOrder === '' ? null : Number(form.sortOrder),
   }
@@ -88,6 +90,7 @@ async function remove(c) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !list.length" />
       <div v-if="list.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="c in list" :key="c.id" class="flex items-center justify-between gap-2 p-4">
           <div class="min-w-0">
@@ -134,10 +137,6 @@ async function remove(c) {
           <input v-model="form.name" class="input" />
         </div>
         <div>
-          <label class="label">Слаг</label>
-          <input v-model="form.slug" class="input" placeholder="margarine" />
-        </div>
-        <div>
           <label class="label">Порядок сортировки</label>
           <input v-model="form.sortOrder" type="number" class="input" />
         </div>
@@ -145,7 +144,7 @@ async function remove(c) {
       </div>
       <template #footer>
         <button class="btn-ghost" @click="modal = false">Отмена</button>
-        <button class="btn-primary" :disabled="saving || !form.name.trim() || !form.slug.trim()" @click="save">
+        <button class="btn-primary" :disabled="saving || !form.name.trim()" @click="save">
           Сохранить
         </button>
       </template>

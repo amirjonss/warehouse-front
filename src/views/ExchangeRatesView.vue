@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Spinner from '@/components/Spinner.vue'
 import { date, toISODate } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
@@ -99,6 +100,7 @@ async function remove(r) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !list.length" />
       <div v-if="list.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="r in list" :key="r.rateDate" class="flex items-center justify-between gap-2 p-4">
           <div>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import ClientCombobox from '@/components/ClientCombobox.vue'
@@ -9,6 +9,9 @@ import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, qty, rawPrice, toISODate, unitLabel } from '@/utils/format'
 import { clients, exchangeRates, paymentAllocations, payments, saleItems, sales, changePaymentStatus, changeSaleStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
+import { useToastStore } from '@/stores/toast'
+
+const toast = useToastStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +27,17 @@ const posting = ref(false)
 
 const line = reactive({ productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
 const selectedProduct = ref(null)
+
+/** Автофокус на поле товара — и возврат в него после каждой добавленной строки, без клика мышью. */
+const productInputMobile = ref(null)
+const productInputDesktop = ref(null)
+function focusProductInput() {
+  nextTick(() => {
+    productInputDesktop.value?.focus()
+    productInputMobile.value?.focus()
+  })
+}
+onMounted(focusProductInput)
 
 async function load() {
   try {
@@ -96,7 +110,7 @@ async function loadExistingDraft(id) {
     draft.value = sale
     header.customerId = String(idFromIri(sale.customer))
     header.customerName = sale.customer?.name ?? ''
-    header.docDate = sale.docDate
+    header.docDate = toISODate(sale.docDate)
     header.note = sale.note ?? ''
 
     const allItems = await saleItems.list()
@@ -179,6 +193,7 @@ async function addItem() {
 
     Object.assign(line, { productId: '', quantity: 1, price: '', currency: 'USD', rate: referenceRate.value })
     selectedProduct.value = null
+    focusProductInput()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -244,7 +259,7 @@ const totals = computed(() => {
  * Клиент платит сразу или уходит в долг — решаем до проводки. «Сейчас» показывает
  * поля оплаты по каждой валюте продажи; «В долг» ничего не добавляет — обычная проводка.
  */
-const paymentMode = ref('debt') // 'debt' | 'now'
+const paymentMode = ref('now') // 'debt' | 'now' — «сейчас» по умолчанию: «в долг» финансово рискованнее и не должен быть предвыбором
 const payNow = reactive({
   USD: { amount: '', method: 'cash' },
   UZS: { amount: '', method: 'cash' },
@@ -279,6 +294,7 @@ async function post() {
         await changePaymentStatus(payment.id, 'posted')
       }
     }
+    toast.success(`${draft.value.number} проведена`)
     router.push('/sales?doc=' + draft.value.id)
   } catch (e) {
     error.value = e.message
@@ -307,6 +323,7 @@ async function post() {
               <div class="min-w-0 flex-1">
                 <label class="label">Товар</label>
                 <ProductCombobox
+                  ref="productInputMobile"
                   :model-value="line.productId"
                   :exclude-ids="usedProductIds"
                   @update:model-value="(v) => (line.productId = v)"
@@ -360,6 +377,7 @@ async function post() {
             <div class="min-w-[180px] flex-1 basis-[220px]">
               <label class="label">Товар</label>
               <ProductCombobox
+                ref="productInputDesktop"
                 :model-value="line.productId"
                 :exclude-ids="usedProductIds"
                 @update:model-value="(v) => (line.productId = v)"
@@ -464,7 +482,7 @@ async function post() {
                 </div>
                 <div class="mt-3 grid grid-cols-2 gap-y-1.5 text-sm">
                   <div class="text-slate-400 dark:text-slate-500">Кол-во</div>
-                  <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ i.quantity }}</div>
+                  <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ qty(i.quantity) }}</div>
                   <div class="text-slate-400 dark:text-slate-500">Цена</div>
                   <div class="tabnum text-right text-slate-700 dark:text-slate-300">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</div>
                   <div class="text-slate-400 dark:text-slate-500">Курс</div>
@@ -519,7 +537,7 @@ async function post() {
                 <!-- Режим просмотра -->
                 <tr v-else class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
-                  <td class="td tabnum">{{ i.quantity }}</td>
+                  <td class="td tabnum">{{ qty(i.quantity) }}</td>
                   <td class="td tabnum">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>
@@ -548,12 +566,12 @@ async function post() {
       <!-- Панель документа: клиент, дата, итог и проводка — закреплена справа, тянется на всю высоту -->
       <aside class="order-1 flex flex-col xl:order-2 xl:sticky xl:top-20 xl:min-h-[calc(100vh-7rem)]">
         <section class="card-pad flex flex-1 flex-col rounded-2xl p-6 shadow-sm dark:shadow-lg dark:shadow-black/20">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Новая продажа</h2>
-            <span v-if="draft" class="badge bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ draft.number }}</span>
+          <div v-if="draft" class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 dark:text-slate-500">Документ</span>
+            <span class="badge bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ draft.number }}</span>
           </div>
 
-          <div class="mt-5 space-y-5">
+          <div class="space-y-5" :class="draft ? 'mt-5' : ''">
             <!-- На планшете (sm+) клиент и дата встают в один ряд, примечание — отдельной строкой ниже -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 xl:gap-5">
               <div>
@@ -601,23 +619,25 @@ async function post() {
                 <p v-if="totals.USD <= 0 && totals.UZS <= 0" class="text-xs text-slate-400 dark:text-slate-500">
                   Добавьте позиции — сумма оплаты подставится автоматически.
                 </p>
-                <div v-for="c in ['USD', 'UZS']" :key="c" v-show="totals[c] > 0" class="rounded-lg border border-slate-300 p-3 dark:border-slate-800">
-                  <div class="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Оплата в {{ c }}</div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="label">Сумма</label>
-                      <input v-model="payNow[c].amount" type="number" step="0.01" class="input" :placeholder="String(totals[c])" />
-                    </div>
-                    <div>
-                      <label class="label">Способ</label>
-                      <select v-model="payNow[c].method" class="input">
-                        <option value="cash">Наличные</option>
-                        <option value="card">Карта</option>
-                        <option value="transfer">Перевод</option>
-                      </select>
+                <template v-for="c in ['USD', 'UZS']" :key="c">
+                  <div v-if="totals[c] > 0" class="rounded-lg border border-slate-300 p-3 dark:border-slate-800">
+                    <div class="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Оплата в {{ c }}</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label class="label">Сумма</label>
+                        <input v-model="payNow[c].amount" type="number" step="0.01" class="input" :placeholder="String(totals[c])" />
+                      </div>
+                      <div>
+                        <label class="label">Способ</label>
+                        <select v-model="payNow[c].method" class="input">
+                          <option value="cash">Наличные</option>
+                          <option value="card">Карта</option>
+                          <option value="transfer">Перевод</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </template>
               </div>
             </div>
           </div>

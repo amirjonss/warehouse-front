@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
 import { dateTime, money, rawPrice } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
@@ -126,6 +127,7 @@ async function openProfit(p) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !pageItems.length" />
       <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="p in pageItems" :key="p.id" class="cursor-pointer p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50" @click="openProfit(p)">
           <div class="flex items-center justify-between gap-2">

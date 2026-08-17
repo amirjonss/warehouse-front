@@ -2,9 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { rawPrice, unitLabel } from '@/utils/format'
+import { priceOrDash, qty, unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
@@ -175,6 +176,7 @@ async function remove(p) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !paged.length" />
       <table v-if="paged.length" class="hidden w-full sm:table">
         <thead>
           <tr>
@@ -194,8 +196,8 @@ async function remove(p) {
             </td>
             <td class="td text-slate-500 dark:text-slate-400">{{ categoryName(p.category) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ unitLabel(p.unit) }}</td>
-            <td class="td tabnum">{{ p.priceUsd ?? '—' }} $ / {{ p.priceUzs !== null ? rawPrice(p.priceUzs, 'UZS') : '—' }} сум</td>
-            <td class="td tabnum">{{ p.stock }}</td>
+            <td class="td tabnum">{{ priceOrDash(p.priceUsd, 'USD') }} $ / {{ priceOrDash(p.priceUzs, 'UZS') }} сум</td>
+            <td class="td tabnum">{{ qty(p.stock) }} {{ unitLabel(p.unit) }}</td>
             <td class="td text-right whitespace-nowrap">
               <div class="inline-flex items-center gap-1.5">
                 <button v-if="auth.can('products.edit')" class="btn-ghost btn-sm" @click="openEdit(p)">
@@ -216,7 +218,7 @@ async function remove(p) {
             <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
             <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
               <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
-              <span class="tabnum">{{ p.stock }} {{ unitLabel(p.unit) }}</span>
+              <span class="tabnum">{{ qty(p.stock) }} {{ unitLabel(p.unit) }}</span>
             </div>
           </RouterLink>
           <div v-if="auth.can('products.edit')" class="flex shrink-0 items-center gap-1.5">

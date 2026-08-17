@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Spinner from '@/components/Spinner.vue'
 import { date, userName } from '@/utils/format'
 import { useConfirmStore } from '@/stores/confirm'
 import { users } from '@/api/resources'
@@ -101,6 +102,7 @@ function copyPassword() {
 
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
+    <Spinner v-if="loading && !list.length" />
     <div v-if="list.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="u in list" :key="u.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">

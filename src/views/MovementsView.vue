@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Pagination from '@/components/Pagination.vue'
+import Spinner from '@/components/Spinner.vue'
 import { dateTime, qty } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
@@ -94,6 +95,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !pageItems.length" />
       <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="m in pageItems" :key="m.id" class="p-4">
           <div class="flex items-center justify-between gap-2">

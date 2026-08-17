@@ -4,6 +4,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
 import { date, money, toISODate, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
@@ -153,6 +154,7 @@ async function remove(e) {
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
+      <Spinner v-if="loading && !pageItems.length" />
       <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="e in pageItems" :key="e.id" class="flex items-start justify-between gap-2 p-4">
           <div class="min-w-0">

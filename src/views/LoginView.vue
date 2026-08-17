@@ -44,7 +44,7 @@ async function submit() {
 
         <div class="mt-4">
           <label class="label">Email</label>
-          <input v-model="email" type="email" class="input" autocomplete="username" required />
+          <input v-model="email" type="email" class="input" autocomplete="username" autofocus required />
         </div>
         <div class="mt-3">
           <label class="label">Пароль</label>

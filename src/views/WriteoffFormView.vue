@@ -4,9 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { money, toISODate } from '@/utils/format'
+import { money, qty, toISODate } from '@/utils/format'
 import { batches, writeoffItems, writeoffs, changeWriteoffStatus } from '@/api/resources'
 import { iri } from '@/api/iri'
+import { useToastStore } from '@/stores/toast'
+
+const toast = useToastStore()
 
 const REASONS = [
   'Истёк срок годности',
@@ -49,7 +52,7 @@ async function loadExistingDraft(id) {
       return
     }
     draft.value = writeoff
-    header.docDate = writeoff.docDate
+    header.docDate = toISODate(writeoff.docDate)
     header.reason = writeoff.reason
     items.value = writeoff.items ?? []
   } catch (e) {
@@ -150,6 +153,7 @@ async function post() {
   error.value = ''
   try {
     await changeWriteoffStatus(draft.value.id, 'posted')
+    toast.success(`${draft.value.number} проведено`)
     router.push('/writeoffs?doc=' + draft.value.id)
   } catch (e) {
     error.value = e.message
@@ -234,7 +238,7 @@ async function post() {
               <div class="min-w-0">
                 <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
                 <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {{ batchNumber(i.batch) }} · {{ i.quantity }}
+                  {{ batchNumber(i.batch) }} · {{ qty(i.quantity) }}
                 </div>
               </div>
               <div class="flex shrink-0 items-center gap-2">
@@ -260,7 +264,7 @@ async function post() {
                 <tr v-for="i in items" :key="i.id" class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
                   <td class="td text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }}</td>
-                  <td class="td tabnum">{{ i.quantity }}</td>
+                  <td class="td tabnum">{{ qty(i.quantity) }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i)) }}</td>
                   <td class="td text-right">
                     <button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>

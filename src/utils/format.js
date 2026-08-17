@@ -46,6 +46,11 @@ export function rawPrice(value, currency) {
   return currency === 'UZS' ? money(value, 'UZS', { withCurrency: false }) : value
 }
 
+/** Как rawPrice, но незаданная цена — всегда «—», а не «0» в одной валюте и «—» в другой. */
+export function priceOrDash(value, currency) {
+  return value === null || value === undefined || value === '' ? '—' : rawPrice(value, currency)
+}
+
 /** «Имя Ф.» — фамилия только первой буквой с точкой; без фамилии — просто имя. */
 export function userName(u) {
   if (!u) return '—'
@@ -133,6 +138,25 @@ export function stockStatus(stock, minStock) {
   if (stock <= 0) return { key: 'out', label: 'Нет в наличии', cls: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }
   if (stock <= minStock) return { key: 'low', label: 'Мало', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' }
   return { key: 'ok', label: 'В наличии', cls: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' }
+}
+
+const CYRILLIC_TO_LATIN = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i',
+  й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't',
+  у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '',
+  э: 'e', ю: 'yu', я: 'ya',
+}
+
+/** «Мясные консервы» -> 'myasnye-konservy' — генерируем slug из названия, не спрашивая пользователя. */
+export function slugify(value) {
+  const transliterated = (value ?? '')
+    .toLowerCase()
+    .split('')
+    .map((ch) => CYRILLIC_TO_LATIN[ch] ?? ch)
+    .join('')
+  return transliterated
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 export function pluralRu(n, forms) {

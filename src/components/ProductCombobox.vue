@@ -16,6 +16,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'select'])
 
+const inputEl = ref(null)
 const query = ref('')
 const open = ref(false)
 const activeIndex = ref(0)
@@ -99,11 +100,17 @@ function onBlur() {
   open.value = false
   if (!props.modelValue) query.value = ''
 }
+
+/** Родитель зовёт это после добавления строки — фокус возвращается в поле товара без клика мышью. */
+defineExpose({
+  focus: () => inputEl.value?.focus(),
+})
 </script>
 
 <template>
   <div class="relative">
     <input
+      ref="inputEl"
       v-model="query"
       type="text"
       class="input pr-8"

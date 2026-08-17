@@ -5,10 +5,13 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { money, rawPrice, toISODate } from '@/utils/format'
+import { money, priceOrDash, qty, rawPrice, toISODate } from '@/utils/format'
 import { api } from '@/api/client'
 import { exchangeRates, products, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
+import { useToastStore } from '@/stores/toast'
+
+const toast = useToastStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -125,7 +128,7 @@ async function loadExistingDraft(id) {
     }
     draft.value = receipt
     header.supplierId = String(idFromIri(receipt.supplier))
-    header.docDate = receipt.docDate
+    header.docDate = toISODate(receipt.docDate)
     header.note = receipt.note ?? ''
     items.value = receipt.items ?? []
   } catch (e) {
@@ -226,6 +229,7 @@ async function post() {
   error.value = ''
   try {
     await changeReceiptStatus(draft.value.id, 'posted')
+    toast.success(`${draft.value.number} проведён`)
     router.push('/receipts?doc=' + draft.value.id)
   } catch (e) {
     error.value = e.message
@@ -347,7 +351,7 @@ async function post() {
           <div v-if="selectedProduct" class="mt-3 space-y-2.5 rounded-lg border border-slate-300 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
             <div class="text-xs text-slate-500 dark:text-slate-400">
               Текущая цена продажи:
-              <span class="tabnum font-medium text-slate-700 dark:text-slate-300">{{ selectedProduct.priceUsd ?? '—' }} $ / {{ selectedProduct.priceUzs !== null ? rawPrice(selectedProduct.priceUzs, 'UZS') : '—' }} сум</span>
+              <span class="tabnum font-medium text-slate-700 dark:text-slate-300">{{ priceOrDash(selectedProduct.priceUsd, 'USD') }} $ / {{ priceOrDash(selectedProduct.priceUzs, 'UZS') }} сум</span>
             </div>
             <div class="flex flex-wrap gap-3">
               <div class="min-w-[120px] flex-1">
@@ -373,7 +377,7 @@ async function post() {
               <div class="min-w-0">
                 <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
                 <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  {{ i.quantity }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }}
+                  {{ qty(i.quantity) }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }}
                 </div>
               </div>
               <div class="flex shrink-0 items-center gap-2">
@@ -399,7 +403,7 @@ async function post() {
               <tbody>
                 <tr v-for="i in items" :key="i.id" class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
-                  <td class="td tabnum">{{ i.quantity }}</td>
+                  <td class="td tabnum">{{ qty(i.quantity) }}</td>
                   <td class="td tabnum">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
 import { money } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
@@ -124,6 +125,7 @@ async function remove(c) {
 
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
+    <Spinner v-if="loading && !pageItems.length" />
     <div v-if="pageItems.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="c in pageItems" :key="c.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">

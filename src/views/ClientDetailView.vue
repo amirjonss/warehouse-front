@@ -182,9 +182,13 @@ async function cancelPayment(p) {
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"> + </template>
               <template v-if="Number(s.totalUzs) > 0">{{ money(s.totalUzs, 'UZS') }}</template>
             </span>
-            <span class="tabnum text-amber-600 dark:text-amber-400">
+            <span
+              class="tabnum"
+              :class="saleRemaining(s).usd > 0 || saleRemaining(s).uzs > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'"
+            >
               <template v-if="saleRemaining(s).usd > 0">{{ money(saleRemaining(s).usd, 'USD') }} </template>
               <template v-if="saleRemaining(s).uzs > 0">{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
+              <template v-if="saleRemaining(s).usd <= 0 && saleRemaining(s).uzs <= 0">—</template>
             </span>
           </div>
         </div>
@@ -212,7 +216,10 @@ async function cancelPayment(p) {
               <template v-if="Number(s.totalUsd) > 0 && Number(s.totalUzs) > 0"><br /></template>
               <template v-if="Number(s.totalUzs) > 0">{{ money(s.totalUzs, 'UZS') }}</template>
             </td>
-            <td class="td tabnum text-amber-600 dark:text-amber-400">
+            <td
+              class="td tabnum"
+              :class="saleRemaining(s).usd > 0 || saleRemaining(s).uzs > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-300 dark:text-slate-600'"
+            >
               <template v-if="saleRemaining(s).usd > 0">{{ money(saleRemaining(s).usd, 'USD') }}</template>
               <template v-if="saleRemaining(s).uzs > 0"><br />{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
               <template v-if="saleRemaining(s).usd <= 0 && saleRemaining(s).uzs <= 0">—</template>

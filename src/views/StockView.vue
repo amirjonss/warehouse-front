@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
+import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
 import { qty, rawPrice, stockStatus, unitLabel, date } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
@@ -173,6 +174,7 @@ const totals = computed(() => summary.value)
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div v-if="tab === 'products'" class="card overflow-hidden">
+      <Spinner v-if="loading && !pagedProducts.length" />
       <div v-if="pagedProducts.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <RouterLink v-for="r in pagedProducts" :key="r.id" :to="`/products/${r.id}`" class="flex items-center justify-between gap-2 p-4">
           <div class="min-w-0">
@@ -223,6 +225,7 @@ const totals = computed(() => summary.value)
     </div>
 
     <div v-else class="card overflow-hidden">
+      <Spinner v-if="loading && !pagedBatches.length" />
       <div v-if="pagedBatches.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="b in pagedBatches" :key="b.id" class="p-4">
           <div class="flex items-center justify-between gap-2">

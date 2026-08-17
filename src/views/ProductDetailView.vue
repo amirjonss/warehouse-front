@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { date, dateTime, qty, rawPrice, unitLabel } from '@/utils/format'
+import { date, dateTime, priceOrDash, qty, rawPrice, unitLabel } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
 import { batches, categories, products } from '@/api/resources'
@@ -79,7 +79,7 @@ const remainingQty = (batch) => Number(batch.remainingQty)
       <div class="card-pad">
         <div class="text-xs text-slate-500 dark:text-slate-400">Цена продажи</div>
         <div class="mt-1 text-lg font-semibold tabnum">
-          {{ product.priceUsd ?? '—' }} $ / {{ product.priceUzs !== null ? rawPrice(product.priceUzs, 'UZS') : '—' }} сум
+          {{ priceOrDash(product.priceUsd, 'USD') }} $ / {{ priceOrDash(product.priceUzs, 'UZS') }} сум
         </div>
       </div>
     </div>
