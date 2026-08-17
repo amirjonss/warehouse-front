@@ -1,0 +1,47 @@
+stages:
+  - deploy
+
+before_script:
+  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
+#deploy-dev-job:
+#  stage: deploy
+#  only:
+#    - dev
+#  script:
+#    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+#    - echo "Deploying dev project..."
+#    - ssh -tt -o StrictHostKeyChecking=no $SSH_HOST "cd /root/sites/static/blender_course-front-dev &&
+#      git reset --hard &&
+#      git pull origin dev &&
+#      docker-compose up"
+
+#deploy-dev-job:
+#  stage: deploy
+#  only:
+#    - dev
+#  script:
+#    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+#    - echo "Deploying dev project..."
+#    - ssh -tt -o StrictHostKeyChecking=no -p 2022 $SSH_HOST "cd /root/sites/static/kh-agency-crm-front-dev &&
+#      git reset --hard &&
+#      git pull origin dev &&
+#      docker compose --env-file=.env.local up --build"
+
+deploy-prod-job:
+  stage: deploy
+  only:
+    - master
+  script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_PRIVATE_SSH_KEY_PROD" | base64 -d | tr -d '\r' | ssh-add -
+    - echo "Deploying the PROD project..."
+    - ssh -tt -o StrictHostKeyChecking=no -p ${DEPLOY_PORT_PROD} ${DEPLOY_HOST_PROD} "
+        cd /root/sites/static/${PROJECT_NAME} &&
+        git reset --hard &&
+        git pull origin master &&
+        docker compose up
+      "
