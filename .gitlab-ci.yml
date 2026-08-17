@@ -33,6 +33,8 @@ before_script:
 
 deploy-prod-job:
   stage: deploy
+  environment:
+    name: production
   only:
     - master
   script:
