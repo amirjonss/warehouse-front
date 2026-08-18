@@ -35,7 +35,7 @@ async function load() {
   try {
     const [c, rates, mySales] = await Promise.all([
       clients.get(route.params.id),
-      exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
+      exchangeRates.list({ 'order[createdAt]': 'desc', itemsPerPage: 1 }),
       sales.list({ customer: route.params.id }),
     ])
     client.value = c

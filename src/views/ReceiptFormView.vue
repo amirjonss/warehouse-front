@@ -99,7 +99,7 @@ async function load() {
   try {
     const [s, rates] = await Promise.all([
       suppliers.list(),
-      exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 }),
+      exchangeRates.list({ 'order[createdAt]': 'desc', itemsPerPage: 1 }),
     ])
     supplierList.value = s
     referenceRate.value = rates[0]?.rateBuy ?? ''

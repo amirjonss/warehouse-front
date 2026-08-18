@@ -16,7 +16,8 @@ const toast = useToastStore()
 const route = useRoute()
 const router = useRouter()
 
-const referenceRate = ref('')
+const referenceRateBuy = ref('')
+const referenceRateSell = ref('')
 const error = ref('')
 
 const header = reactive({ customerId: '', customerName: '', docDate: toISODate(), note: '' })
@@ -41,9 +42,9 @@ onMounted(focusProductInput)
 
 async function load() {
   try {
-    const rates = await exchangeRates.list({ 'order[rateDate]': 'desc', itemsPerPage: 1 })
-    referenceRate.value = rates[0]?.rateBuy ?? ''
-    line.rate = referenceRate.value
+    const rates = await exchangeRates.list({ 'order[createdAt]': 'desc', itemsPerPage: 1 })
+    referenceRateBuy.value = rates[0]?.rateBuy ?? ''
+    referenceRateSell.value = rates[0]?.rateSell ?? ''
   } catch (e) {
     error.value = e.message
   }
@@ -153,11 +154,37 @@ async function syncHeader() {
 
 const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
+/**
+ * Курс нужен только когда валюта строки отличается от валюты товара — если товар
+ * долларовый и платят долларами (или сумовый и платят сумами), конвертировать
+ * нечего. Пока товар не выбран, поле показываем — направление ещё не известно.
+ */
+const rateNeeded = computed(() => !selectedProduct.value || line.currency !== selectedProduct.value.currency)
+
+/**
+ * Валюты совпадают — курс необязателен на бэкенде, поле не показываем и ничего
+ * не отправляем. Не совпадают — подставляем ориентир для удобства, но продавец
+ * может поправить: долларовый товар продают за сум — курс продажи (мы «продаём»
+ * валюту товара); сумовый товар продают за доллар — курс покупки (мы «покупаем»
+ * валюту оплаты).
+ */
+function applyRateDefault() {
+  if (!selectedProduct.value) return
+  if (line.currency === selectedProduct.value.currency) {
+    line.rate = ''
+  } else if (selectedProduct.value.currency === 'USD') {
+    line.rate = referenceRateSell.value
+  } else {
+    line.rate = referenceRateBuy.value
+  }
+}
+
 /** Комбобокс отдаёт полный товар при выборе — берём из него дефолтные валюту/цену, без похода в общий каталог. */
 function onProductSelect(p) {
   selectedProduct.value = p
   line.currency = p.currency
   line.price = line.currency === 'USD' ? (p.priceUsd ?? '') : (p.priceUzs ?? '')
+  applyRateDefault()
 }
 
 /** Переключение валюты подставляет цену товара в этой валюте, если она задана. */
@@ -166,9 +193,12 @@ function setCurrency(c) {
   if (!selectedProduct.value) return
   const price = c === 'USD' ? selectedProduct.value.priceUsd : selectedProduct.value.priceUzs
   if (price !== null && price !== undefined) line.price = price
+  applyRateDefault()
 }
 
-const lineValid = computed(() => line.productId && Number(line.quantity) > 0 && Number(line.rate) > 0)
+const lineValid = computed(
+  () => line.productId && Number(line.quantity) > 0 && (!rateNeeded.value || Number(line.rate) > 0),
+)
 const canAddLine = computed(() => lineValid.value && !!header.customerId)
 
 async function addItem() {
@@ -182,16 +212,16 @@ async function addItem() {
       product: iri('products', line.productId),
       quantity: String(line.quantity),
       currency: line.currency,
-      rate: String(line.rate),
     }
     if (line.price !== '' && line.price !== null) payload.price = String(line.price)
+    if (line.rate !== '' && line.rate !== null) payload.rate = String(line.rate)
 
     const created = await saleItems.create(payload)
     // product в ответе — голый IRI (Product.name не входит в группу sale-item:read), подставляем
     // уже известный из комбобокса объект товара, чтобы не ходить за ним отдельно.
     items.value.push({ ...created, product: selectedProduct.value })
 
-    Object.assign(line, { productId: '', quantity: 1, price: '', currency: 'USD', rate: referenceRate.value })
+    Object.assign(line, { productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
     selectedProduct.value = null
     focusProductInput()
   } catch (e) {
@@ -341,7 +371,7 @@ async function post() {
                 <label class="label">Цена</label>
                 <input v-model="line.price" type="number" step="0.01" class="input px-2" placeholder="авто" />
               </div>
-              <div class="min-w-0 flex-1">
+              <div v-if="rateNeeded" class="min-w-0 flex-1">
                 <label class="label">Курс</label>
                 <input v-model="line.rate" type="number" step="0.0001" class="input px-2" />
               </div>
@@ -412,7 +442,7 @@ async function post() {
                 </button>
               </div>
             </div>
-            <div class="w-28 shrink-0">
+            <div v-if="rateNeeded" class="w-28 shrink-0">
               <label class="label">Курс</label>
               <input v-model="line.rate" type="number" step="0.0001" class="input" />
             </div>

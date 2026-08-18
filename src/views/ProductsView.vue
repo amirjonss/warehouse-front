@@ -16,7 +16,7 @@ import { iri, idFromIri } from '@/api/iri'
 const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
-const UNITS = ['kg', 'l', 'pcs']
+const UNITS = ['pcs', 'kg', 'l', ]
 
 const categoryList = ref([])
 const loading = ref(true)
@@ -64,11 +64,10 @@ async function loadPage(p) {
 
 const blank = () => ({
   id: null,
-  sku: '',
   name: '',
   category: '',
   currency: 'USD',
-  unit: 'kg',
+  unit: 'pcs',
   minStock: 10,
   priceUsd: null,
   priceUzs: null,
@@ -106,7 +105,6 @@ function openNew() {
 function openEdit(p) {
   Object.assign(form, {
     id: p.id,
-    sku: p.sku,
     name: p.name,
     category: idFromIri(p.category) ?? '',
     currency: p.currency,
@@ -120,14 +118,13 @@ function openEdit(p) {
   modal.value = true
 }
 
-const valid = computed(() => form.name.trim() && form.sku.trim() && form.category)
+const valid = computed(() => form.name.trim() && form.category)
 
 async function save() {
   if (!valid.value) return
   saving.value = true
   formError.value = ''
   const payload = {
-    sku: form.sku.trim(),
     name: form.name.trim(),
     category: iri('categories', form.category),
     currency: form.currency,
@@ -192,7 +189,6 @@ async function remove(p) {
           <tr v-for="p in paged" :key="p.id" class="table-row">
             <td class="td">
               <RouterLink :to="`/products/${p.id}`" class="font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">{{ p.name }}</RouterLink>
-              <div class="text-xs text-slate-400 dark:text-slate-500">{{ p.sku }}</div>
             </td>
             <td class="td text-slate-500 dark:text-slate-400">{{ categoryName(p.category) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ unitLabel(p.unit) }}</td>
@@ -217,7 +213,7 @@ async function remove(p) {
           <RouterLink :to="`/products/${p.id}`" class="block min-w-0 flex-1">
             <div class="font-medium text-slate-800 dark:text-slate-100">{{ p.name }}</div>
             <div class="mt-0.5 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>{{ p.sku }} · {{ categoryName(p.category) }}</span>
+              <span>{{ categoryName(p.category) }}</span>
               <span class="tabnum">{{ qty(p.stock) }} {{ unitLabel(p.unit) }}</span>
             </div>
           </RouterLink>
@@ -249,18 +245,12 @@ async function remove(p) {
           <label class="label">Наименование</label>
           <input v-model="form.name" class="input" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="label">Артикул</label>
-            <input v-model="form.sku" class="input" />
-          </div>
-          <div>
-            <label class="label">Категория</label>
-            <select v-model="form.category" class="input">
-              <option value="" disabled>Выберите</option>
-              <option v-for="c in categoryList" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-            </select>
-          </div>
+        <div>
+          <label class="label">Категория</label>
+          <select v-model="form.category" class="input">
+            <option value="" disabled>Выберите</option>
+            <option v-for="c in categoryList" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
+          </select>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>

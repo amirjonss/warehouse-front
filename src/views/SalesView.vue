@@ -10,6 +10,7 @@ import Pagination from '@/components/Pagination.vue'
 import { date, money, qty, rawPrice, userName } from '@/utils/format'
 import { useConfirmStore } from '@/stores/confirm'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
+import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
 import { sales } from '@/api/resources'
 
@@ -35,10 +36,16 @@ const pageSize = 20
 const pageItems = ref([])
 const totalItems = ref(0)
 
+/** Поиск уходит на бэкенд (?number=...) только от 2 символов и с задержкой. */
+const debouncedSearch = useDebouncedValue(search, 300)
+const searchQuery = computed(() => {
+  const s = debouncedSearch.value.trim()
+  return s.length >= 2 ? s : ''
+})
+
 /**
  * strictly_after/strictly_before — исключающие границы, поэтому сдвигаем на день наружу
  * (dayBefore/dayAfter), чтобы сам from/to остался внутри диапазона.
- * У Sale нет SearchFilter — поиск по номеру/клиенту фильтрует только уже загруженную страницу.
  */
 async function loadPage(p) {
   loading.value = true
@@ -47,6 +54,7 @@ async function loadPage(p) {
     const params = { page: p, itemsPerPage: pageSize, 'order[docDate]': 'desc' }
     if (from.value) params['docDate[strictly_after]'] = dayBefore(from.value)
     if (to.value) params['docDate[strictly_before]'] = dayAfter(to.value)
+    if (searchQuery.value) params.number = searchQuery.value
     const { items, totalItems: total } = await api.getPage('/sales', params)
     pageItems.value = items
     totalItems.value = total
@@ -58,6 +66,10 @@ async function loadPage(p) {
 }
 watch(page, (p) => loadPage(p))
 watch([from, to], () => {
+  page.value = 1
+  loadPage(1)
+})
+watch(searchQuery, () => {
   page.value = 1
   loadPage(1)
 })
@@ -96,17 +108,13 @@ async function removeDraft(s) {
 
 const clientName = (v) => v?.name ?? '—'
 const productName = (v) => v?.name ?? '—'
-
-const filtered = computed(() =>
-  pageItems.value.filter((s) => `${s.number} ${clientName(s.customer)}`.toLowerCase().includes(search.value.toLowerCase())),
-)
 </script>
 
 <template>
   <div class="space-y-4">
     <!-- ≥lg: всё в один ряд. -->
     <div class="hidden flex-wrap items-center gap-2 lg:flex">
-      <input v-model="search" class="input max-w-xs" placeholder="Поиск по номеру/клиенту" />
+      <input v-model="search" class="input max-w-xs" placeholder="Поиск по номеру" />
       <DateRangeFilter
         :month-label="monthLabel"
         :month-label-short="monthLabelShort"
@@ -121,7 +129,7 @@ const filtered = computed(() =>
 
     <!-- <lg: поиск, период и кнопка — раздельными рядами. -->
     <div class="space-y-2 lg:hidden">
-      <input v-model="search" class="input w-full" placeholder="Поиск по номеру/клиенту" />
+      <input v-model="search" class="input w-full" placeholder="Поиск по номеру" />
       <div class="flex flex-wrap items-center gap-2">
         <DateRangeFilter
           :month-label="monthLabel"
@@ -138,18 +146,14 @@ const filtered = computed(() =>
       </div>
     </div>
 
-    <p class="text-xs text-slate-400 dark:text-slate-500">
-      Поиск по номеру/клиенту ищет только на текущей странице — переключите страницу, если не нашли
-    </p>
-
     <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ error }}</p>
 
     <div class="card overflow-hidden">
       <!-- Мобильный (< sm): карточки вместо таблицы — без горизонтального скролла -->
-      <Spinner v-if="loading && !filtered.length" />
-      <div v-if="filtered.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
+      <Spinner v-if="loading && !pageItems.length" />
+      <div v-if="pageItems.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div
-          v-for="s in filtered"
+          v-for="s in pageItems"
           :key="s.id"
           class="cursor-pointer p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
           @click="open(s)"
@@ -184,7 +188,7 @@ const filtered = computed(() =>
       </div>
 
       <!-- sm и выше: обычная таблица (со скроллом вбок, если не влезает) -->
-      <div v-if="filtered.length" class="hidden overflow-x-auto sm:block">
+      <div v-if="pageItems.length" class="hidden overflow-x-auto sm:block">
       <table class="w-full">
         <thead>
           <tr>
@@ -198,7 +202,7 @@ const filtered = computed(() =>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="s in filtered" :key="s.id" class="table-row cursor-pointer" @click="open(s)">
+          <tr v-for="s in pageItems" :key="s.id" class="table-row cursor-pointer" @click="open(s)">
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</td>
             <td class="td text-slate-600 dark:text-slate-400">{{ clientName(s.customer) }}</td>
@@ -224,7 +228,7 @@ const filtered = computed(() =>
       </table>
       </div>
       <EmptyState v-else-if="!loading && totalItems === 0" icon="cart" title="Продаж пока нет" />
-      <EmptyState v-else-if="!loading" icon="cart" title="Ничего не найдено на этой странице" text="Попробуйте другую страницу или измените поиск" />
+      <EmptyState v-else-if="!loading" icon="cart" title="Ничего не найдено" text="Попробуйте изменить период или поиск" />
 
       <Pagination :page="page" :total-pages="totalPages" :total-items="totalItems" :page-size="pageSize" @update:page="page = $event" />
     </div>

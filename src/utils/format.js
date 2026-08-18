@@ -86,8 +86,8 @@ export function qty(value) {
 }
 
 export const UNITS = {
-  kg: { short: 'кг', full: 'килограмм' },
   pcs: { short: 'шт', full: 'штука' },
+  kg: { short: 'кг', full: 'килограмм' },
   l: { short: 'л', full: 'литр' },
 }
 

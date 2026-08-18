@@ -97,7 +97,12 @@ const labelEvery = computed(() => (props.data.length > 20 ? 5 : props.data.lengt
       }"
     >
       <div class="font-medium text-slate-800 dark:text-slate-100">{{ dateShort(data[hovered].date) }}</div>
-      <div class="tabnum mt-0.5 text-slate-600 dark:text-slate-300">{{ money(data[hovered].total) }}</div>
+      <div class="tabnum mt-0.5 text-slate-600 dark:text-slate-300">
+        <template v-if="data[hovered].totalUsd > 0">{{ money(data[hovered].totalUsd, 'USD') }}</template>
+        <template v-if="data[hovered].totalUsd > 0 && data[hovered].total > 0"> + </template>
+        <template v-if="data[hovered].total > 0">{{ money(data[hovered].total) }}</template>
+        <template v-if="!(data[hovered].totalUsd > 0) && !(data[hovered].total > 0)">{{ money(0) }}</template>
+      </div>
       <div class="text-slate-400 dark:text-slate-500">{{ data[hovered].count }} {{ countLabel }}</div>
     </div>
   </div>

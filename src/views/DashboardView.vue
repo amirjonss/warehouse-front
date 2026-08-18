@@ -105,7 +105,9 @@ const chartData = computed(() => {
     const daySales = periodSales.value.filter((s) => saleDay(s) === day && s.status === 'posted')
     out.push({
       date: day,
-      total: daySales.reduce((s, x) => s + Number(x.totalUsd) + Number(x.totalUzs), 0),
+      // Высота столбца и ось — в сумах (валюта отчётности), доллары не складываем с ними как одно число.
+      total: daySales.reduce((s, x) => s + Number(x.totalUzs), 0),
+      totalUsd: daySales.reduce((s, x) => s + Number(x.totalUsd), 0),
       count: daySales.length,
     })
   }

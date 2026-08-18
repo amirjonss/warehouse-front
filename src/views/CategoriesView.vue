@@ -7,7 +7,6 @@ import ModalDialog from '@/components/ModalDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { categories } from '@/api/resources'
-import { slugify } from '@/utils/format'
 
 const auth = useAuthStore()
 const confirmStore = useConfirmStore()
@@ -19,14 +18,14 @@ const modal = ref(false)
 const saving = ref(false)
 const formError = ref('')
 
-const blank = () => ({ id: null, slug: '', name: '', sortOrder: null })
+const blank = () => ({ id: null, name: '' })
 const form = reactive(blank())
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    list.value = await categories.list({ 'order[sortOrder]': 'asc' })
+    list.value = await categories.list()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -41,7 +40,7 @@ function openNew() {
   modal.value = true
 }
 function openEdit(c) {
-  Object.assign(form, { id: c.id, slug: c.slug, name: c.name, sortOrder: c.sortOrder })
+  Object.assign(form, { id: c.id, name: c.name })
   formError.value = ''
   modal.value = true
 }
@@ -51,9 +50,7 @@ async function save() {
   saving.value = true
   formError.value = ''
   const payload = {
-    slug: form.id ? form.slug : slugify(form.name.trim()),
     name: form.name.trim(),
-    sortOrder: form.sortOrder === null || form.sortOrder === '' ? null : Number(form.sortOrder),
   }
   try {
     if (form.id) await categories.update(form.id, payload)
@@ -95,7 +92,6 @@ async function remove(c) {
         <div v-for="c in list" :key="c.id" class="flex items-center justify-between gap-2 p-4">
           <div class="min-w-0">
             <div class="font-medium text-slate-800 dark:text-slate-100">{{ c.name }}</div>
-            <div class="text-xs text-slate-400 dark:text-slate-500">{{ c.slug }} · #{{ c.sortOrder ?? '—' }}</div>
           </div>
           <div class="flex shrink-0 gap-1">
             <button class="btn-ghost btn-sm" @click="openEdit(c)"><AppIcon name="edit" :size="14" /></button>
@@ -108,16 +104,12 @@ async function remove(c) {
         <thead>
           <tr>
             <th class="th">Название</th>
-            <th class="th">Слаг</th>
-            <th class="th">Порядок</th>
             <th class="th"></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in list" :key="c.id" class="table-row">
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ c.name }}</td>
-            <td class="td text-slate-500 dark:text-slate-400">{{ c.slug }}</td>
-            <td class="td tabnum">{{ c.sortOrder ?? '—' }}</td>
             <td class="td text-right">
               <div class="flex justify-end gap-1">
                 <button class="btn-ghost btn-sm" @click="openEdit(c)"><AppIcon name="edit" :size="14" /></button>
@@ -135,10 +127,6 @@ async function remove(c) {
         <div>
           <label class="label">Название</label>
           <input v-model="form.name" class="input" />
-        </div>
-        <div>
-          <label class="label">Порядок сортировки</label>
-          <input v-model="form.sortOrder" type="number" class="input" />
         </div>
         <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
