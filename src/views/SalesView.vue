@@ -46,15 +46,20 @@ const searchQuery = computed(() => {
 /**
  * strictly_after/strictly_before — исключающие границы, поэтому сдвигаем на день наружу
  * (dayBefore/dayAfter), чтобы сам from/to остался внутри диапазона.
+ * Поиск по номеру ищет по всей истории — фильтр периода при активном поиске не применяем,
+ * иначе продажа за прошлый месяц не найдётся, пока не переключишь период вручную.
  */
 async function loadPage(p) {
   loading.value = true
   error.value = ''
   try {
     const params = { page: p, itemsPerPage: pageSize, 'order[docDate]': 'desc' }
-    if (from.value) params['docDate[strictly_after]'] = dayBefore(from.value)
-    if (to.value) params['docDate[strictly_before]'] = dayAfter(to.value)
-    if (searchQuery.value) params.number = searchQuery.value
+    if (searchQuery.value) {
+      params.number = searchQuery.value
+    } else {
+      if (from.value) params['docDate[strictly_after]'] = dayBefore(from.value)
+      if (to.value) params['docDate[strictly_before]'] = dayAfter(to.value)
+    }
     const { items, totalItems: total } = await api.getPage('/sales', params)
     pageItems.value = items
     totalItems.value = total
