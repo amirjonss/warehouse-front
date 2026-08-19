@@ -8,20 +8,23 @@ import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
 import { date, money, qty, rawPrice, userName } from '@/utils/format'
+import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
-import { sales } from '@/api/resources'
+import { changeSaleStatus, sales } from '@/api/resources'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
 const opened = ref(null)
+const cancelling = ref(false)
 
 const { from, to, specificDate, monthLabel, monthLabelShort, applyMonth, shiftMonth, applySpecificDate } = useDateRangeFilter()
 
@@ -108,6 +111,21 @@ async function removeDraft(s) {
     totalItems.value -= 1
   } catch (e) {
     error.value = e.message
+  }
+}
+
+/** Проведённая продажа не удаляется — отмена возвращает товар на склад и снимает долг. */
+async function cancelSale(s) {
+  if (!(await confirmStore.ask(`Отменить продажу «${s.number}»? Товар вернётся на склад.`))) return
+  cancelling.value = true
+  try {
+    await changeSaleStatus(s.id, 'cancelled')
+    opened.value = null
+    await loadPage(page.value)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    cancelling.value = false
   }
 }
 
@@ -270,6 +288,14 @@ const productName = (v) => v?.name ?? '—'
       <template #footer>
         <RouterLink :to="`/print/sale/${opened.id}`" target="_blank" class="btn-ghost">Печать</RouterLink>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
+        <button
+          v-if="opened.status === 'posted' && auth.can('sales.create')"
+          class="btn-danger"
+          :disabled="cancelling"
+          @click="cancelSale(opened)"
+        >
+          Отменить продажу
+        </button>
       </template>
     </ModalDialog>
   </div>

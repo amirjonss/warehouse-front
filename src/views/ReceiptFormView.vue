@@ -5,7 +5,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
-import { money, priceOrDash, qty, rawPrice, toISODate } from '@/utils/format'
+import { money, priceOrDash, qty, rateFmt, rawPrice, toISODate } from '@/utils/format'
 import { api } from '@/api/client'
 import { exchangeRates, products, receiptItems, receipts, suppliers, changeReceiptStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
@@ -405,7 +405,7 @@ async function post() {
                   <td class="td">{{ productName(i.product) }}</td>
                   <td class="td tabnum">{{ qty(i.quantity) }}</td>
                   <td class="td tabnum">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
-                  <td class="td tabnum text-slate-500 dark:text-slate-400">{{ i.rate }}</td>
+                  <td class="td tabnum text-slate-500 dark:text-slate-400">{{ rateFmt(i.rate) }}</td>
                   <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</td>
                   <td class="td text-right">
                     <button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>

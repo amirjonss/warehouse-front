@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
-import { dateTime, money, rawPrice } from '@/utils/format'
+import { dateTime, money, rateFmt, rawPrice } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { api } from '@/api/client'
@@ -196,7 +196,7 @@ async function openProfit(p) {
         </div>
         <div class="flex items-center justify-between">
           <span class="text-slate-500 dark:text-slate-400">Курс</span>
-          <span class="tabnum text-slate-700 dark:text-slate-300">{{ opened.saleItem?.rate }}</span>
+          <span class="tabnum text-slate-700 dark:text-slate-300">{{ rateFmt(opened.saleItem?.rate) }}</span>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-slate-500 dark:text-slate-400">Сумма продажи</span>
