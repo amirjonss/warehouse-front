@@ -37,16 +37,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [c, mySales, allPayments] = await Promise.all([
+    const [c, mySales, myPayments] = await Promise.all([
       clients.get(route.params.id),
-      sales.list({ customer: route.params.id, 'order[docDate]': 'desc', 'order[id]': 'desc' }),
-      payments.list(),
+      sales.list({ customer: route.params.id, 'order[id]': 'desc', 'order[docDate]': 'desc' }),
+      payments.list({ client: route.params.id, 'order[id]': 'desc', 'order[docDate]': 'desc' }),
     ])
     client.value = c
     clientSales.value = mySales
-    clientPayments.value = allPayments
-      .filter((p) => idFromIri(p.client) === String(route.params.id))
-      .sort((a, b) => b.docDate.localeCompare(a.docDate))
+    clientPayments.value = myPayments
   } catch (e) {
     error.value = e.message
   } finally {
