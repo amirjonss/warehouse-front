@@ -214,7 +214,7 @@ async function cancelWriteoff(w) {
       <Pagination :page="page" :total-pages="totalPages" :total-items="totalItems" :page-size="pageSize" @update:page="page = $event" />
     </div>
 
-    <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + opened.reason" @close="opened = null">
+    <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + opened.reason" width="max-w-2xl" @close="opened = null">
       <div class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
           <div class="flex items-start justify-between gap-2">
@@ -237,7 +237,7 @@ async function cancelWriteoff(w) {
         <tbody>
           <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
-            <td class="px-3 py-1.5">{{ batchNumber(i.batch) }}</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">{{ batchNumber(i.batch) }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ qty(i.quantity) }}</td>
             <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i), i.batch?.currency) }}</td>
           </tr>
