@@ -114,8 +114,8 @@ async function loadExistingDraft(id) {
     header.docDate = toISODate(sale.docDate)
     header.note = sale.note ?? ''
 
-    const allItems = await saleItems.list()
-    items.value = allItems.filter((it) => String(idFromIri(it.sale)) === String(id))
+    // Только позиции этой продажи (с сервера), а не все sale_items с фильтрацией на клиенте.
+    items.value = await saleItems.list({ sale: id })
   } catch (e) {
     error.value = e.message
   } finally {
