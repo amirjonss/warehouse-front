@@ -7,7 +7,7 @@ import ModalDialog from '@/components/ModalDialog.vue'
 import { date, money, qty, rawPrice, userName } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
-import { clients, debts, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
+import { clients, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
 import { idFromIri } from '@/api/iri'
 
 const route = useRoute()
@@ -18,7 +18,6 @@ const confirmStore = useConfirmStore()
 const client = ref(null)
 const clientSales = ref([])
 const clientPayments = ref([])
-const debtRows = ref([])
 const loading = ref(true)
 const error = ref('')
 const tab = ref('sales')
@@ -48,10 +47,6 @@ async function load() {
     clientPayments.value = allPayments
       .filter((p) => idFromIri(p.client) === String(route.params.id))
       .sort((a, b) => b.docDate.localeCompare(a.docDate))
-
-    // У Debt нет фильтра по client — берём точечно по каждой продаже клиента, а не всю таблицу долгов.
-    const debtsPerSale = await Promise.all(mySales.map((s) => debts.list({ sale: s.id })))
-    debtRows.value = debtsPerSale.flat()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -60,16 +55,18 @@ async function load() {
 }
 onMounted(load)
 
+/** Долг по продаже берём прямо из полей списка продаж (outstandingUsd/outstandingUzs) — без отдельных запросов к /debts. */
 function saleRemaining(sale) {
-  const rows = debtRows.value.filter((d) => idFromIri(d.sale) === String(sale.id))
-  const usd = rows.filter((d) => d.currency === 'USD').reduce((s, d) => s + Number(d.amount), 0)
-  const uzs = rows.filter((d) => d.currency === 'UZS').reduce((s, d) => s + Number(d.amount), 0)
-  return { usd, uzs }
+  return { usd: Number(sale.outstandingUsd) || 0, uzs: Number(sale.outstandingUzs) || 0 }
 }
 
 const balance = computed(() => {
-  const usd = debtRows.value.filter((d) => d.currency === 'USD').reduce((s, d) => s + Number(d.amount), 0)
-  const uzs = debtRows.value.filter((d) => d.currency === 'UZS').reduce((s, d) => s + Number(d.amount), 0)
+  let usd = 0
+  let uzs = 0
+  for (const s of clientSales.value) {
+    usd += Number(s.outstandingUsd) || 0
+    uzs += Number(s.outstandingUzs) || 0
+  }
   return { usd, uzs }
 })
 

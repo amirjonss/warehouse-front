@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { money, toISODate } from '@/utils/format'
-import { autoAllocatePayment, clients, debts, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
+import { autoAllocatePayment, clients, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 import { useToastStore } from '@/stores/toast'
 import { useConfirmStore } from '@/stores/confirm'
@@ -43,24 +43,15 @@ async function load() {
     client.value = c
     referenceRate.value = rates[0]?.rateBuy ?? ''
 
-    const postedSales = mySales.filter((s) => s.status === 'posted')
-    const debtsPerSale = await Promise.all(postedSales.map((s) => debts.list({ sale: s.id })))
-
-    const bySale = new Map()
-    for (const rows of debtsPerSale) {
-      for (const d of rows) {
-        const sid = idFromIri(d.sale)
-        const key = `${sid}:${d.currency}`
-        bySale.set(key, (bySale.get(key) ?? 0) + Number(d.amount))
-      }
+    // Долг берём прямо из полей продажи (outstandingUsd/outstandingUzs) — без отдельных запросов к /debts.
+    const lines = []
+    for (const s of mySales.filter((x) => x.status === 'posted')) {
+      const usd = Number(s.outstandingUsd) || 0
+      const uzs = Number(s.outstandingUzs) || 0
+      if (usd > 0.004) lines.push({ saleId: String(s.id), saleNumber: s.number ?? String(s.id), currency: 'USD', remaining: usd })
+      if (uzs > 0.004) lines.push({ saleId: String(s.id), saleNumber: s.number ?? String(s.id), currency: 'UZS', remaining: uzs })
     }
-    debtLines.value = [...bySale.entries()]
-      .filter(([, remaining]) => remaining > 0.004)
-      .map(([key, remaining]) => {
-        const [saleId, currency] = key.split(':')
-        const sale = postedSales.find((s) => String(s.id) === saleId)
-        return { saleId, saleNumber: sale?.number ?? saleId, currency, remaining }
-      })
+    debtLines.value = lines
 
     if (route.params.paymentId) await loadExistingDraft(route.params.paymentId)
   } catch (e) {

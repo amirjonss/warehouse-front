@@ -56,7 +56,7 @@ async function loadPage(p) {
   loading.value = true
   error.value = ''
   try {
-    const params = { page: p, itemsPerPage: pageSize, 'order[docDate]': 'desc' }
+    const params = { page: p, itemsPerPage: pageSize, 'order[id]': 'desc', 'order[docDate]': 'desc' }
     if (searchQuery.value) {
       params.number = searchQuery.value
     } else {
