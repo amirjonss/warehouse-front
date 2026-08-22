@@ -147,7 +147,7 @@ async function remove(r) {
       <EmptyState v-else-if="!loading" icon="money" title="Курсов пока нет" />
     </div>
 
-    <ModalDialog v-if="modal" :title="form.isNew ? 'Новый курс' : 'Курс от ' + dateTime(form.createdAt)" @close="modal = false">
+    <ModalDialog v-if="modal" :title="form.isNew ? 'Новый курс' : 'Курс от ' + dateTime(form.createdAt)" @close="modal = false" @submit="save">
       <div class="space-y-3">
         <div>
           <label class="label">Курс покупки</label>

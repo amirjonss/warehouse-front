@@ -118,7 +118,7 @@ function copyPassword() {
     </div>
     <EmptyState v-else-if="!loading" icon="shield" title="Сотрудников пока нет" />
 
-    <ModalDialog v-if="modal" title="Новый сотрудник" @close="modal = false">
+    <ModalDialog v-if="modal" title="Новый сотрудник" @close="modal = false" @submit="save">
       <div v-if="!created" class="space-y-3">
         <div>
           <label class="label">Email</label>

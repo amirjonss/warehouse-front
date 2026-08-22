@@ -7,10 +7,19 @@ const props = defineProps({
   subtitle: String,
   width: { type: String, default: 'max-w-lg' },
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'submit'])
 
 function onKey(e) {
-  if (e.key === 'Escape') emit('close')
+  if (e.key === 'Escape') {
+    emit('close')
+    return
+  }
+  // Enter в текстовом поле формы отправляет модалку — как в нативной форме. textarea
+  // и составной ввод (IME) не трогаем, чтобы не мешать переносам строк и подсказкам.
+  if (e.key === 'Enter' && !e.isComposing) {
+    const el = e.target
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) emit('submit')
+  }
 }
 onMounted(() => {
   document.addEventListener('keydown', onKey)

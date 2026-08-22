@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -17,8 +17,14 @@ const route = useRoute()
 const router = useRouter()
 
 const supplierList = ref([])
-const referenceRate = ref('')
+const referenceRateBuy = ref('')
+const referenceRateSell = ref('')
 const error = ref('')
+
+/** Курс по умолчанию: для USD — курс продажи, для UZS — курс покупки («цена покупки» доллара). Может быть пустым, если курс не задан. */
+function defaultRate(currency) {
+  return currency === 'UZS' ? referenceRateBuy.value : referenceRateSell.value
+}
 
 const header = reactive({ supplierId: '', docDate: toISODate(), note: '' })
 const draft = ref(null)
@@ -26,9 +32,20 @@ const items = ref([])
 const addingItem = ref(false)
 const posting = ref(false)
 
-const line = reactive({ productId: '', quantity: 10, price: '', currency: 'USD', rate: '', newPriceUsd: '', newPriceUzs: '' })
+const line = reactive({ productId: '', quantity: '', price: '', currency: 'USD', rate: '', newPriceUsd: '', newPriceUzs: '' })
 const selectedProduct = ref(null)
 const lastPurchase = ref(null)
+
+/** Автофокус на поле товара — и возврат в него после каждой добавленной строки, без клика мышью. */
+const productInputMobile = ref(null)
+const productInputDesktop = ref(null)
+function focusProductInput() {
+  nextTick(() => {
+    productInputDesktop.value?.focus()
+    productInputMobile.value?.focus()
+  })
+}
+onMounted(focusProductInput)
 
 /** Приход — удобный момент обновить отпускную цену товара вместе с позицией; подсказка «прошлая цена» берётся из последней партии. */
 async function onProductSelect(p) {
@@ -37,7 +54,8 @@ async function onProductSelect(p) {
   line.newPriceUzs = p.priceUzs ?? ''
   lastPurchase.value = null
   try {
-    const { items } = await api.getPage('/batches', { product: p.id, 'order[receivedAt]': 'desc', 'order[id]': 'desc', page: 1 })
+    // «Прошлая цена» — только из проведённого прихода: партии отменённых приходов не в счёт.
+    const { items } = await api.getPage('/batches', { product: p.id, 'receipt.status': 'posted', 'order[receivedAt]': 'desc', 'order[id]': 'desc', page: 1 })
     lastPurchase.value = items[0] ?? null
   } catch {
     lastPurchase.value = null
@@ -102,8 +120,9 @@ async function load() {
       exchangeRates.list({ 'order[createdAt]': 'desc', itemsPerPage: 1 }),
     ])
     supplierList.value = s
-    referenceRate.value = rates[0]?.rateBuy ?? ''
-    line.rate = referenceRate.value
+    referenceRateBuy.value = rates[0]?.rateBuy ?? ''
+    referenceRateSell.value = rates[0]?.rateSell ?? ''
+    line.rate = defaultRate(line.currency)
   } catch (e) {
     error.value = e.message
   }
@@ -169,7 +188,14 @@ async function syncHeader() {
 
 const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
-const lineValid = computed(() => line.productId && Number(line.quantity) > 0 && Number(line.price) > 0 && Number(line.rate) > 0)
+const lineValid = computed(
+  () =>
+    line.productId &&
+    Number(line.quantity) > 0 &&
+    Number(line.price) > 0 &&
+    // курс обязателен только для USD; для UZS он необязателен (можно оставить пустым)
+    (line.currency === 'UZS' || Number(line.rate) > 0),
+)
 const canAddLine = computed(() => lineValid.value && !!header.supplierId)
 
 async function addItem() {
@@ -178,14 +204,15 @@ async function addItem() {
   error.value = ''
   try {
     const r = await ensureDraft()
-    const created = await receiptItems.create({
+    const payload = {
       receipt: iri('receipts', r.id),
       product: iri('products', line.productId),
       quantity: String(line.quantity),
       price: String(line.price),
       currency: line.currency,
-      rate: line.currency === 'UZS' ? '1' : String(line.rate),
-    })
+    }
+    if (line.rate !== '' && line.rate !== null && line.rate !== undefined) payload.rate = String(line.rate)
+    const created = await receiptItems.create(payload)
     items.value.push(created)
     if (selectedProduct.value && (priceChanged(line.newPriceUsd, selectedProduct.value.priceUsd) || priceChanged(line.newPriceUzs, selectedProduct.value.priceUzs))) {
       await products.update(selectedProduct.value.id, {
@@ -194,11 +221,12 @@ async function addItem() {
       })
     }
     line.productId = ''
-    line.quantity = 10
+    line.quantity = ''
     line.price = 0
     line.newPriceUsd = ''
     line.newPriceUzs = ''
     selectedProduct.value = null
+    focusProductInput()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -257,11 +285,11 @@ async function post() {
             <div class="flex gap-3">
               <div class="min-w-0 flex-1">
                 <label class="label">Товар</label>
-                <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
+                <ProductCombobox ref="productInputMobile" v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
               </div>
               <div class="w-24 shrink-0">
                 <label class="label">Кол-во</label>
-                <input v-model="line.quantity" type="number" step="0.001" class="input" />
+                <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" class="input" />
               </div>
             </div>
 
@@ -272,7 +300,7 @@ async function post() {
               </div>
               <div class="min-w-0 flex-1">
                 <label class="label">Курс</label>
-                <input v-model="line.rate" type="number" step="0.0001" class="input px-2" :disabled="line.currency === 'UZS'" />
+                <input v-model="line.rate" type="number" step="0.0001" class="input px-2" placeholder="—" />
               </div>
               <div class="shrink-0">
                 <label class="label">Валюта</label>
@@ -288,7 +316,7 @@ async function post() {
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
                     ]"
-                    @click="line.currency = c; line.rate = c === 'UZS' ? '1' : referenceRate"
+                    @click="line.currency = c; line.rate = defaultRate(c)"
                   >
                     {{ c }}
                   </button>
@@ -305,11 +333,11 @@ async function post() {
           <div class="hidden items-end gap-3 xl:flex xl:flex-wrap">
             <div class="min-w-[180px] flex-1 basis-[220px]">
               <label class="label">Товар</label>
-              <ProductCombobox v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
+              <ProductCombobox ref="productInputDesktop" v-model="line.productId" :exclude-ids="usedProductIds" @select="onProductSelect" />
             </div>
             <div class="w-24 shrink-0">
               <label class="label">Кол-во</label>
-              <input v-model="line.quantity" type="number" step="0.001" class="input" />
+              <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" class="input" />
             </div>
             <div class="w-28 shrink-0">
               <label class="label">Цена</label>
@@ -329,7 +357,7 @@ async function post() {
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
                   ]"
-                  @click="line.currency = c; line.rate = c === 'UZS' ? '1' : referenceRate"
+                  @click="line.currency = c; line.rate = defaultRate(c)"
                 >
                   {{ c }}
                 </button>
@@ -337,7 +365,7 @@ async function post() {
             </div>
             <div class="w-28 shrink-0">
               <label class="label">Курс</label>
-              <input v-model="line.rate" type="number" step="0.0001" class="input" :disabled="line.currency === 'UZS'" />
+              <input v-model="line.rate" type="number" step="0.0001" class="input" placeholder="—" />
             </div>
             <div class="shrink-0">
               <button class="btn-primary" :disabled="!canAddLine || addingItem" @click="addItem">
@@ -491,7 +519,7 @@ async function post() {
       </button>
     </div>
 
-    <ModalDialog v-if="newSupplierModal" title="Новый поставщик" @close="newSupplierModal = false">
+    <ModalDialog v-if="newSupplierModal" title="Новый поставщик" @close="newSupplierModal = false" @submit="saveNewSupplier">
       <div class="space-y-3">
         <div>
           <label class="label">Название</label>

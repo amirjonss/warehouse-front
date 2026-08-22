@@ -26,7 +26,7 @@ const items = ref([])
 const addingItem = ref(false)
 const posting = ref(false)
 
-const line = reactive({ productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
+const line = reactive({ productId: '', quantity: '', price: '', currency: 'USD', rate: '' })
 const selectedProduct = ref(null)
 
 /** Автофокус на поле товара — и возврат в него после каждой добавленной строки, без клика мышью. */
@@ -155,28 +155,15 @@ async function syncHeader() {
 const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
 /**
- * Курс нужен только когда валюта строки отличается от валюты товара — если товар
- * долларовый и платят долларами (или сумовый и платят сумами), конвертировать
- * нечего. Пока товар не выбран, поле показываем — направление ещё не известно.
- */
-const rateNeeded = computed(() => !selectedProduct.value || line.currency !== selectedProduct.value.currency)
-
-/**
- * Валюты совпадают — курс необязателен на бэкенде, поле не показываем и ничего
- * не отправляем. Не совпадают — подставляем ориентир для удобства, но продавец
- * может поправить: долларовый товар продают за сум — курс продажи (мы «продаём»
- * валюту товара); сумовый товар продают за доллар — курс покупки (мы «покупаем»
- * валюту оплаты).
+ * Курс (сум за 1 USD) обязателен всегда: продажа может задеть партии в разной валюте
+ * (одна закуплена в USD, другая в UZS), и без курса расчёт себестоимости/прибыли
+ * по такой партии будет неверным — даже если валюта продажи совпадает с валютой товара.
+ * Поэтому поле всегда показываем и требуем.
  */
 function applyRateDefault() {
   if (!selectedProduct.value) return
-  if (line.currency === selectedProduct.value.currency) {
-    line.rate = ''
-  } else if (selectedProduct.value.currency === 'USD') {
-    line.rate = referenceRateSell.value
-  } else {
-    line.rate = referenceRateBuy.value
-  }
+  // Ориентир: долларовый товар — курс продажи, сумовый — курс покупки. Продавец может поправить.
+  line.rate = selectedProduct.value.currency === 'USD' ? referenceRateSell.value : referenceRateBuy.value
 }
 
 /** Комбобокс отдаёт полный товар при выборе — берём из него дефолтные валюту/цену, без похода в общий каталог. */
@@ -197,7 +184,7 @@ function setCurrency(c) {
 }
 
 const lineValid = computed(
-  () => line.productId && Number(line.quantity) > 0 && (!rateNeeded.value || Number(line.rate) > 0),
+  () => line.productId && Number(line.quantity) > 0 && Number(line.rate) > 0,
 )
 const canAddLine = computed(() => lineValid.value && !!header.customerId)
 
@@ -221,7 +208,7 @@ async function addItem() {
     // уже известный из комбобокса объект товара, чтобы не ходить за ним отдельно.
     items.value.push({ ...created, product: selectedProduct.value })
 
-    Object.assign(line, { productId: '', quantity: 1, price: '', currency: 'USD', rate: '' })
+    Object.assign(line, { productId: '', quantity: '', price: '', currency: 'USD', rate: '' })
     selectedProduct.value = null
     focusProductInput()
   } catch (e) {
@@ -247,9 +234,10 @@ const savingEdit = ref(false)
 
 function startEdit(item) {
   editingItemId.value = item.id
-  editForm.quantity = item.quantity
-  editForm.price = item.price
-  editForm.rate = item.rate
+  // Number() убирает хвостовые нули («10.000» → 10): для штучного товара показываем целое, для кг/л — реальную дробь.
+  editForm.quantity = item.quantity != null ? Number(item.quantity) : ''
+  editForm.price = item.price ?? ''
+  editForm.rate = item.rate ?? ''
 }
 
 function cancelEdit() {
@@ -260,11 +248,12 @@ async function saveEdit(item) {
   savingEdit.value = true
   error.value = ''
   try {
-    const updated = await saleItems.update(item.id, {
-      quantity: String(editForm.quantity),
-      price: String(editForm.price),
-      rate: String(editForm.rate),
-    })
+    const payload = { quantity: String(editForm.quantity) }
+    if (editForm.price !== '' && editForm.price !== null && editForm.price !== undefined)
+      payload.price = String(editForm.price)
+    if (editForm.rate !== '' && editForm.rate !== null && editForm.rate !== undefined)
+      payload.rate = String(editForm.rate)
+    const updated = await saleItems.update(item.id, payload)
     const idx = items.value.findIndex((i) => i.id === item.id)
     if (idx !== -1) items.value[idx] = { ...updated, product: items.value[idx].product }
 
@@ -362,7 +351,7 @@ async function post() {
               </div>
               <div class="w-24 shrink-0">
                 <label class="label">Кол-во</label>
-                <input v-model="line.quantity" type="number" step="0.001" class="input" />
+                <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" class="input" />
               </div>
             </div>
 
@@ -371,7 +360,7 @@ async function post() {
                 <label class="label">Цена</label>
                 <input v-model="line.price" type="number" step="0.01" class="input px-2" placeholder="авто" />
               </div>
-              <div v-if="rateNeeded" class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1">
                 <label class="label">Курс</label>
                 <input v-model="line.rate" type="number" step="0.0001" class="input px-2" />
               </div>
@@ -416,7 +405,7 @@ async function post() {
             </div>
             <div class="w-24 shrink-0">
               <label class="label">Кол-во</label>
-              <input v-model="line.quantity" type="number" step="0.001" class="input" />
+              <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" class="input" />
             </div>
             <div class="w-28 shrink-0">
               <label class="label">Цена</label>
@@ -442,7 +431,7 @@ async function post() {
                 </button>
               </div>
             </div>
-            <div v-if="rateNeeded" class="w-28 shrink-0">
+            <div class="w-28 shrink-0">
               <label class="label">Курс</label>
               <input v-model="line.rate" type="number" step="0.0001" class="input" />
             </div>
@@ -468,16 +457,16 @@ async function post() {
           </p>
         </section>
 
-        <section class="card flex flex-1 flex-col overflow-hidden rounded-2xl shadow-sm dark:shadow-lg dark:shadow-black/20">
-          <!-- Мобильный (< sm): карточки вместо таблицы — без горизонтального скролла -->
-          <div v-if="items.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
+        <section class="card @container flex flex-1 flex-col overflow-hidden rounded-2xl shadow-sm dark:shadow-lg dark:shadow-black/20">
+          <!-- Таблица показывается, когда сам контейнер списка ≥730px (container query), иначе карточки — не зависит от ширины окна и от того, свёрнут ли сайдбар -->
+          <div v-if="items.length" class="divide-y divide-slate-200 @min-[730px]:hidden dark:divide-slate-800">
             <div v-for="i in items" :key="i.id" class="p-4">
               <template v-if="editingItemId === i.id">
                 <div class="mb-3 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
                     <label class="label">Кол-во</label>
-                    <input v-model="editForm.quantity" type="number" step="0.001" class="input h-8 px-2 py-1 text-sm" />
+                    <input v-model="editForm.quantity" type="number" :step="i.product?.unit === 'pcs' ? 1 : 0.001" :min="i.product?.unit === 'pcs' ? 1 : undefined" class="input h-8 px-2 py-1 text-sm" />
                   </div>
                   <div>
                     <label class="label">Цена</label>
@@ -524,8 +513,8 @@ async function post() {
             </div>
           </div>
 
-          <!-- sm и выше: обычная таблица (со скроллом вбок, если не влезает) -->
-          <div v-if="items.length" class="hidden overflow-x-auto sm:block">
+          <!-- Таблица — только когда контейнер списка ≥730px (см. @container на секции) -->
+          <div v-if="items.length" class="hidden overflow-x-auto @min-[730px]:block">
             <table class="w-full min-w-[720px]">
             <thead>
               <tr>
@@ -544,7 +533,7 @@ async function post() {
                 <tr v-if="editingItemId === i.id" class="table-row bg-indigo-50/50 dark:bg-indigo-500/5">
                   <td class="td font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</td>
                   <td class="td">
-                    <input v-model="editForm.quantity" type="number" step="0.001" class="input h-8 px-2 py-1 text-sm" />
+                    <input v-model="editForm.quantity" type="number" :step="i.product?.unit === 'pcs' ? 1 : 0.001" :min="i.product?.unit === 'pcs' ? 1 : undefined" class="input h-8 px-2 py-1 text-sm" />
                   </td>
                   <td class="td">
                     <input v-model="editForm.price" type="number" step="0.01" class="input h-8 px-2 py-1 text-sm" />
@@ -709,7 +698,7 @@ async function post() {
       </button>
     </div>
 
-    <ModalDialog v-if="newClientModal" title="Новый клиент" @close="newClientModal = false">
+    <ModalDialog v-if="newClientModal" title="Новый клиент" @close="newClientModal = false" @submit="saveNewClient">
       <div class="space-y-3">
         <div>
           <label class="label">Название</label>

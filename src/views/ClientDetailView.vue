@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
-import { date, money, userName } from '@/utils/format'
+import { date, money, qty, rawPrice, userName } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { clients, debts, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
@@ -100,6 +100,32 @@ async function openPayment(p) {
 
 const saleNumber = (v) => clientSales.value.find((s) => String(s.id) === String(idFromIri(v)))?.number ?? '—'
 
+const productName = (v) => v?.name ?? '—'
+
+/** Просмотр деталей продажи прямо из карточки клиента — как в списке продаж. Черновик открываем на редактирование. */
+const openedSale = ref(null)
+
+/** Клик по номеру накладной в распределении платежа — закрываем платёж и открываем детали этой продажи. */
+function openSaleFromAllocation(a) {
+  const sale = clientSales.value.find((s) => String(s.id) === String(idFromIri(a.sale)))
+  if (!sale) return
+  openedPayment.value = null
+  openSale(sale)
+}
+
+async function openSale(s) {
+  if (s.status === 'draft') {
+    router.push(`/sales/${s.id}/edit`)
+    return
+  }
+  openedSale.value = s
+  try {
+    openedSale.value = await sales.get(s.id)
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
 /** Отмена платежа возвращает долг по накладным — перезагружаем список продаж/оплат, а не только статус. */
 async function cancelPayment(p) {
   if (!(await confirmStore.ask(`Отменить платёж «${p.number}»?`))) return
@@ -168,7 +194,7 @@ async function cancelPayment(p) {
 
     <div v-if="tab === 'sales'" class="card overflow-hidden">
       <div v-if="clientSales.length" class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
-        <div v-for="s in clientSales" :key="s.id" class="p-4">
+        <div v-for="s in clientSales" :key="s.id" class="cursor-pointer p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50" @click="openSale(s)">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</div>
@@ -207,7 +233,7 @@ async function cancelPayment(p) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="s in clientSales" :key="s.id" class="table-row">
+          <tr v-for="s in clientSales" :key="s.id" class="table-row cursor-pointer" @click="openSale(s)">
             <td class="td font-medium text-slate-800 dark:text-slate-100">{{ s.number }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ date(s.docDate) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ userName(s.soldBy) }}</td>
@@ -221,12 +247,13 @@ async function cancelPayment(p) {
               :class="saleRemaining(s).usd > 0 || saleRemaining(s).uzs > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-300 dark:text-slate-600'"
             >
               <template v-if="saleRemaining(s).usd > 0">{{ money(saleRemaining(s).usd, 'USD') }}</template>
-              <template v-if="saleRemaining(s).uzs > 0"><br />{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
+              <template v-if="saleRemaining(s).usd > 0 && saleRemaining(s).uzs > 0"><br /></template>
+              <template v-if="saleRemaining(s).uzs > 0">{{ money(saleRemaining(s).uzs, 'UZS') }}</template>
               <template v-if="saleRemaining(s).usd <= 0 && saleRemaining(s).uzs <= 0">—</template>
             </td>
             <td class="td"><span class="badge" :class="STATUS[s.status].cls">{{ STATUS[s.status].label }}</span></td>
             <td class="td text-right">
-              <RouterLink :to="`/print/sale/${s.id}`" target="_blank" class="btn-ghost btn-sm"><AppIcon name="print" :size="14" /></RouterLink>
+              <RouterLink :to="`/print/sale/${s.id}`" target="_blank" class="btn-ghost btn-sm" @click.stop><AppIcon name="print" :size="14" /></RouterLink>
             </td>
           </tr>
         </tbody>
@@ -304,6 +331,41 @@ async function cancelPayment(p) {
       <EmptyState v-else icon="wallet" title="Оплат пока нет" />
     </div>
 
+    <ModalDialog v-if="openedSale" :title="openedSale.number" :subtitle="date(openedSale.docDate) + ' · ' + userName(openedSale.soldBy)" @close="openedSale = null">
+      <div class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
+        <div v-for="i in openedSale.items ?? []" :key="i.id" class="py-2">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
+            <div class="tabnum shrink-0 font-semibold text-slate-800 dark:text-slate-100">{{ money(i.total, i.currency) }}</div>
+          </div>
+          <div class="tabnum mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ qty(i.quantity) }} × {{ rawPrice(i.price, i.currency) }} {{ i.currency }}</div>
+        </div>
+      </div>
+
+      <table class="hidden w-full text-sm sm:table">
+        <thead>
+          <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
+            <th class="py-1.5 pr-3">Товар</th>
+            <th class="px-3 py-1.5 text-right">Кол-во</th>
+            <th class="px-3 py-1.5 text-right">Цена</th>
+            <th class="py-1.5 pl-3 text-right">Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="i in openedSale.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
+            <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ qty(i.quantity) }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ rawPrice(i.price, i.currency) }} {{ i.currency }}</td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ money(i.total, i.currency) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <template #footer>
+        <RouterLink :to="`/print/sale/${openedSale.id}`" target="_blank" class="btn-ghost">Печать</RouterLink>
+        <button class="btn-ghost" @click="openedSale = null">Закрыть</button>
+      </template>
+    </ModalDialog>
+
     <ModalDialog
       v-if="openedPayment"
       :title="openedPayment.number"
@@ -330,7 +392,11 @@ async function cancelPayment(p) {
           </thead>
           <tbody>
             <tr v-for="a in openedAllocations" :key="a.id" class="border-t border-slate-200 dark:border-slate-800">
-              <td class="py-1.5 pr-3">{{ saleNumber(a.sale) }}</td>
+              <td class="py-1.5 pr-3">
+                <button class="font-medium text-indigo-600 hover:underline dark:text-indigo-400" @click="openSaleFromAllocation(a)">
+                  {{ saleNumber(a.sale) }}
+                </button>
+              </td>
               <td class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{{ a.currency }}</td>
               <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap text-slate-500 dark:text-slate-400">{{ a.payRate ?? '—' }}</td>
               <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ money(a.amountSpent, openedPayment.currency) }}</td>

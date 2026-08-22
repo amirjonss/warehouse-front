@@ -87,6 +87,7 @@ export function qty(value) {
 
 /** Курс валюты: до 4 знаков после точки, но без лишних нулей (13000.0000 -> «13 000»). */
 export function rateFmt(value) {
+  if (value === null || value === undefined || value === '') return '—'
   const n = Number(value) || 0
   const s = Number.isInteger(n) ? String(n) : n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
   return s.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ')

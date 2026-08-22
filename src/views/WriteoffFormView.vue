@@ -6,7 +6,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, qty, toISODate } from '@/utils/format'
 import { batches, writeoffItems, writeoffs, changeWriteoffStatus } from '@/api/resources'
-import { iri } from '@/api/iri'
+import { iri, idFromIri } from '@/api/iri'
 import { useToastStore } from '@/stores/toast'
 
 const toast = useToastStore()
@@ -92,6 +92,10 @@ async function onProductSelect(p) {
   }
 }
 
+/** Одну партию нельзя списать дважды (уникальность writeoff+batch) — уже добавленные убираем из выбора. Товар из поиска не исключаем: другие его партии ещё доступны. */
+const usedBatchIds = computed(() => new Set(items.value.map((i) => String(idFromIri(i.batch)))))
+const availableBatches = computed(() => batchOptions.value.filter((b) => !usedBatchIds.value.has(String(b.id))))
+
 const selectedBatch = computed(() => batchOptions.value.find((b) => String(b.id) === String(line.batchId)))
 const lineValid = computed(
   () => selectedBatch.value && Number(line.quantity) > 0 && Number(line.quantity) <= selectedBatch.value.stock,
@@ -145,7 +149,19 @@ function lossValue(item) {
   return item.batch ? Number(item.quantity) * Number(item.batch.purchasePrice ?? 0) : 0
 }
 
-const totalLoss = computed(() => items.value.reduce((sum, i) => sum + lossValue(i), 0))
+/** Партии бывают в разных валютах — суммируем потери отдельно по USD и UZS. */
+const totalLossByCurrency = computed(() => {
+  const acc = { USD: 0, UZS: 0 }
+  for (const i of items.value) acc[i.batch?.currency ?? 'UZS'] += lossValue(i)
+  return acc
+})
+const totalLossText = computed(() => {
+  const { USD, UZS } = totalLossByCurrency.value
+  const parts = []
+  if (USD > 0) parts.push(money(USD, 'USD'))
+  if (UZS > 0) parts.push(money(UZS, 'UZS'))
+  return parts.length ? parts.join(' + ') : money(0)
+})
 
 async function post() {
   if (!draft.value || items.value.length === 0) return
@@ -185,7 +201,7 @@ async function post() {
               </div>
               <div class="w-24 shrink-0">
                 <label class="label">Кол-во</label>
-                <input v-model="line.quantity" type="number" step="0.001" :max="selectedBatch?.stock" class="input" />
+                <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" :max="selectedBatch?.stock" class="input" />
               </div>
             </div>
 
@@ -193,7 +209,7 @@ async function post() {
               <label class="label">Партия</label>
               <select v-model="line.batchId" class="input" :disabled="!line.productId || loadingBatches">
                 <option value="" disabled>{{ loadingBatches ? 'Загрузка…' : 'Выберите' }}</option>
-                <option v-for="b in batchOptions" :key="b.id" :value="String(b.id)">
+                <option v-for="b in availableBatches" :key="b.id" :value="String(b.id)">
                   {{ b.number }} (остаток {{ b.stock }})
                 </option>
               </select>
@@ -214,14 +230,14 @@ async function post() {
               <label class="label">Партия</label>
               <select v-model="line.batchId" class="input" :disabled="!line.productId || loadingBatches">
                 <option value="" disabled>{{ loadingBatches ? 'Загрузка…' : 'Выберите' }}</option>
-                <option v-for="b in batchOptions" :key="b.id" :value="String(b.id)">
+                <option v-for="b in availableBatches" :key="b.id" :value="String(b.id)">
                   {{ b.number }} (остаток {{ b.stock }})
                 </option>
               </select>
             </div>
             <div class="w-24 shrink-0">
               <label class="label">Кол-во</label>
-              <input v-model="line.quantity" type="number" step="0.001" :max="selectedBatch?.stock" class="input" />
+              <input v-model="line.quantity" type="number" :step="selectedProduct?.unit === 'pcs' ? 1 : 0.001" :min="selectedProduct?.unit === 'pcs' ? 1 : undefined" :max="selectedBatch?.stock" class="input" />
             </div>
             <div class="shrink-0">
               <button class="btn-primary" :disabled="!lineValid || addingItem" @click="addItem">
@@ -242,7 +258,7 @@ async function post() {
                 </div>
               </div>
               <div class="flex shrink-0 items-center gap-2">
-                <span class="tabnum text-sm font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i)) }}</span>
+                <span class="tabnum text-sm font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i), i.batch?.currency) }}</span>
                 <button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>
               </div>
             </div>
@@ -265,7 +281,7 @@ async function post() {
                   <td class="td">{{ productName(i.product) }}</td>
                   <td class="td text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }}</td>
                   <td class="td tabnum">{{ qty(i.quantity) }}</td>
-                  <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i)) }}</td>
+                  <td class="td tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i), i.batch?.currency) }}</td>
                   <td class="td text-right">
                     <button class="btn-ghost btn-sm" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>
                   </td>
@@ -304,7 +320,7 @@ async function post() {
           <div class="mt-auto hidden space-y-3 border-t border-slate-300 pt-5 xl:block dark:border-slate-800">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 dark:text-slate-400">Потери на сумму</span>
-              <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(totalLoss) }}</span>
+              <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ totalLossText }}</span>
             </div>
             <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
               Провести списание
@@ -320,7 +336,7 @@ async function post() {
     >
       <div class="flex items-center justify-between text-sm">
         <span class="text-slate-500 dark:text-slate-400">Потери на сумму</span>
-        <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ money(totalLoss) }}</span>
+        <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ totalLossText }}</span>
       </div>
       <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
         Провести списание

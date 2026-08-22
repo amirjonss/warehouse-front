@@ -200,7 +200,7 @@ async function remove(e) {
       <Pagination :page="page" :total-pages="totalPages" :total-items="totalItems" :page-size="pageSize" @update:page="page = $event" />
     </div>
 
-    <ModalDialog v-if="modal" title="Новый расход" @close="modal = false">
+    <ModalDialog v-if="modal" title="Новый расход" @close="modal = false" @submit="save">
       <div class="space-y-3">
         <div>
           <label class="label">Дата</label>

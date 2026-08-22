@@ -239,7 +239,7 @@ async function remove(p) {
       />
     </div>
 
-    <ModalDialog v-if="modal" :title="form.id ? 'Товар' : 'Новый товар'" @close="modal = false">
+    <ModalDialog v-if="modal" :title="form.id ? 'Товар' : 'Новый товар'" @close="modal = false" @submit="save">
       <div class="space-y-3">
         <div>
           <label class="label">Наименование</label>

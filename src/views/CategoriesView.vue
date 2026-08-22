@@ -122,7 +122,7 @@ async function remove(c) {
       <EmptyState v-else-if="!loading" icon="tag" title="Категорий пока нет" />
     </div>
 
-    <ModalDialog v-if="modal" :title="form.id ? 'Категория' : 'Новая категория'" @close="modal = false">
+    <ModalDialog v-if="modal" :title="form.id ? 'Категория' : 'Новая категория'" @close="modal = false" @submit="save">
       <div class="space-y-3">
         <div>
           <label class="label">Название</label>

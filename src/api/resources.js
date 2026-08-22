@@ -36,3 +36,6 @@ export const changeWriteoffStatus = (id, status) => changeStatus('/writeoffs', i
 export const changePaymentStatus = (id, status) => changeStatus('/payments', id, status)
 
 export const changeUserPassword = (id, payload) => api.patch(`/users/${id}/password`, payload)
+
+/** Автораспределение: раскидывает черновик платежа по непогашенным продажам клиента (в валюте платежа, от старых к новым) и сразу проводит. */
+export const autoAllocatePayment = (id) => api.post(`/payments/${id}/auto_allocate`)

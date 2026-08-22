@@ -10,12 +10,14 @@ import Pagination from '@/components/Pagination.vue'
 import { date, money, qty, rateFmt, rawPrice, userName } from '@/utils/format'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
+import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { api } from '@/api/client'
-import { receipts, suppliers } from '@/api/resources'
+import { changeReceiptStatus, receipts, suppliers } from '@/api/resources'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
 const supplierList = ref([])
@@ -24,6 +26,7 @@ const error = ref('')
 const search = ref('')
 const supplierFilter = ref('')
 const opened = ref(null)
+const cancelling = ref(false)
 
 const STATUS = {
   draft: { label: 'черновик', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
@@ -105,6 +108,23 @@ async function openReceipt(r) {
     opened.value = await receipts.get(r.id)
   } catch (e) {
     error.value = e.message
+  }
+}
+
+/** Отмена проведённого прихода возвращает партии со склада — запрещена, если из партии уже что-то списали/продали. */
+async function cancelReceipt(r) {
+  if (!(await confirmStore.ask(`Отменить приход «${r.number}»? Партии будут сняты со склада.`))) return
+  cancelling.value = true
+  error.value = ''
+  try {
+    await changeReceiptStatus(r.id, 'cancelled')
+    await loadPage(page.value)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    // модалку закрываем в любом случае — и при успехе, и при ошибке (баннер с ошибкой показывается в списке)
+    opened.value = null
+    cancelling.value = false
   }
 }
 
@@ -283,6 +303,14 @@ async function removeDraft(r) {
       </table>
       <template #footer>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
+        <button
+          v-if="opened.status === 'posted' && auth.can('receipts.create')"
+          class="btn-danger"
+          :disabled="cancelling"
+          @click="cancelReceipt(opened)"
+        >
+          Отменить приход
+        </button>
       </template>
     </ModalDialog>
   </div>

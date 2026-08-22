@@ -163,7 +163,7 @@ async function remove(c) {
       @update:page="page = $event"
     />
 
-    <ModalDialog v-if="modal" :title="form.id ? 'Клиент' : 'Новый клиент'" @close="modal = false">
+    <ModalDialog v-if="modal" :title="form.id ? 'Клиент' : 'Новый клиент'" @close="modal = false" @submit="save">
       <div class="space-y-3">
         <div>
           <label class="label">Название</label>

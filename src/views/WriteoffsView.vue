@@ -7,7 +7,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, qty, userName } from '@/utils/format'
+import { date, money, qty, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
@@ -76,6 +76,20 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
 
 const productName = (v) => v?.name ?? '—'
 const batchNumber = (v) => v?.number ?? '—'
+
+/** Потери по позиции — количество × себестоимость партии, в валюте партии (batch.purchasePrice/currency из writeoffs:read). */
+function lossValue(item) {
+  return item.batch ? Number(item.quantity) * Number(item.batch.purchasePrice ?? 0) : 0
+}
+/** Партии бывают в разных валютах — итог суммируем отдельно по USD и UZS. */
+const totalLossText = computed(() => {
+  const acc = { USD: 0, UZS: 0 }
+  for (const i of opened.value?.items ?? []) acc[i.batch?.currency ?? 'UZS'] += lossValue(i)
+  const parts = []
+  if (acc.USD > 0) parts.push(money(acc.USD, 'USD'))
+  if (acc.UZS > 0) parts.push(money(acc.UZS, 'UZS'))
+  return parts.length ? parts.join(' + ') : money(0)
+})
 
 /** Черновик открывается на редактирование, проведённое/отменённое — в режиме просмотра. */
 function open(w) {
@@ -205,9 +219,9 @@ async function cancelWriteoff(w) {
         <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
-            <div class="tabnum shrink-0 text-slate-700 dark:text-slate-300">{{ qty(i.quantity) }}</div>
+            <div class="tabnum shrink-0 font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i), i.batch?.currency) }}</div>
           </div>
-          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }}</div>
+          <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }} · {{ qty(i.quantity) }}</div>
         </div>
       </div>
 
@@ -216,17 +230,30 @@ async function cancelWriteoff(w) {
           <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
             <th class="py-1.5 pr-3">Товар</th>
             <th class="px-3 py-1.5">Партия</th>
-            <th class="py-1.5 pl-3 text-right">Кол-во</th>
+            <th class="px-3 py-1.5 text-right">Кол-во</th>
+            <th class="py-1.5 pl-3 text-right">Потери</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
             <td class="px-3 py-1.5">{{ batchNumber(i.batch) }}</td>
-            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap">{{ qty(i.quantity) }}</td>
+            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ qty(i.quantity) }}</td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">{{ money(lossValue(i), i.batch?.currency) }}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr class="border-t border-slate-200 dark:border-slate-800">
+            <td class="py-2 pr-3 text-slate-500 dark:text-slate-400" colspan="3">Потери на сумму</td>
+            <td class="tabnum py-2 pl-3 text-right whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">{{ totalLossText }}</td>
+          </tr>
+        </tfoot>
       </table>
+
+      <div class="mt-3 flex items-center justify-between text-sm sm:hidden">
+        <span class="text-slate-500 dark:text-slate-400">Потери на сумму</span>
+        <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ totalLossText }}</span>
+      </div>
       <template #footer>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
         <button

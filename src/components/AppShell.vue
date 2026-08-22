@@ -20,6 +20,11 @@ const showPrinter = canPrint()
 const drawerOpen = ref(false)
 watch(() => route.fullPath, () => (drawerOpen.value = false))
 
+// Сворачивание сайдбара в узкую полосу с иконками (только десктоп/lg+); выбор запоминаем.
+const SIDEBAR_KEY = 'wh_sidebar_collapsed'
+const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === '1')
+watch(collapsed, (v) => localStorage.setItem(SIDEBAR_KEY, v ? '1' : '0'))
+
 const profileMenuOpen = ref(false)
 watch(() => route.fullPath, () => (profileMenuOpen.value = false))
 
@@ -66,14 +71,15 @@ function logout() {
   <div class="min-h-screen bg-slate-50 dark:bg-slate-950">
     <!-- Сайдбар: постоянный на десктопе, выдвижной на телефоне -->
     <aside
-      class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-300 bg-slate-50 transition-transform duration-200 lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
-      :class="drawerOpen ? 'translate-x-0' : '-translate-x-full'"
+      class="group/sidebar fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-300 bg-slate-50 transition-[transform,width] duration-200 lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900"
+      :class="[drawerOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-16' : 'lg:w-[248px]']"
+      :data-collapsed="collapsed"
     >
-      <div class="flex h-16 items-center gap-2.5 px-4">
-        <div class="grid h-9 w-9 place-items-center rounded-lg bg-indigo-600 text-white">
+      <div class="flex h-16 items-center gap-2.5 px-4 group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0">
+        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white">
           <AppIcon name="boxes" :size="20" />
         </div>
-        <div class="leading-tight">
+        <div class="leading-tight group-data-[collapsed=true]/sidebar:lg:hidden">
           <div class="font-semibold text-slate-900 dark:text-white">Wirehouse</div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500">складской учёт</div>
         </div>
@@ -91,11 +97,12 @@ function logout() {
           v-for="item in nav"
           :key="item.to"
           :to="item.to"
-          class="nav-link"
+          class="nav-link group-data-[collapsed=true]/sidebar:lg:justify-center"
           :class="{ 'nav-link-active': isActive(item.to) }"
+          :title="collapsed ? item.label : undefined"
         >
-          <AppIcon :name="item.icon" :size="18" />
-          <span>{{ item.label }}</span>
+          <AppIcon :name="item.icon" :size="18" class="shrink-0" />
+          <span class="group-data-[collapsed=true]/sidebar:lg:hidden">{{ item.label }}</span>
         </RouterLink>
       </nav>
 
@@ -105,7 +112,7 @@ function logout() {
 
         <div
           v-if="profileMenuOpen"
-          class="absolute right-3 bottom-full left-3 z-50 mb-1 space-y-1 rounded-lg border border-slate-300 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+          class="absolute right-3 bottom-full left-3 z-50 mb-1 space-y-1 rounded-lg border border-slate-300 bg-white p-1.5 shadow-lg group-data-[collapsed=true]/sidebar:lg:right-auto group-data-[collapsed=true]/sidebar:lg:left-2 group-data-[collapsed=true]/sidebar:lg:w-56 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
         >
           <RouterLink to="/profile" class="nav-link !px-2 !py-1.5 !text-xs">
             <AppIcon name="users" :size="15" /> Профиль
@@ -123,7 +130,8 @@ function logout() {
 
         <button
           type="button"
-          class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-800"
+          class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-slate-100 group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0 dark:hover:bg-slate-800"
+          :title="collapsed ? (auth.user ? userName(auth.user) : '') : undefined"
           @click="profileMenuOpen = !profileMenuOpen"
         >
           <div
@@ -132,11 +140,11 @@ function logout() {
           >
             {{ initials }}
           </div>
-          <div class="min-w-0 flex-1 leading-tight">
+          <div class="min-w-0 flex-1 leading-tight group-data-[collapsed=true]/sidebar:lg:hidden">
             <div class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{{ auth.user ? userName(auth.user) : '' }}</div>
             <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ auth.roleTitle }}</div>
           </div>
-          <AppIcon name="chevronLeft" :size="14" class="shrink-0 rotate-90 text-slate-400 dark:text-slate-500" />
+          <AppIcon name="chevronLeft" :size="14" class="shrink-0 rotate-90 text-slate-400 group-data-[collapsed=true]/sidebar:lg:hidden dark:text-slate-500" />
         </button>
       </div>
     </aside>
@@ -148,7 +156,7 @@ function logout() {
     />
 
     <!-- Контент -->
-    <div class="lg:pl-[248px]">
+    <div class="transition-[padding] duration-200" :class="collapsed ? 'lg:pl-16' : 'lg:pl-[248px]'">
       <header
         class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-300 bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:border-slate-800 dark:bg-slate-950/80"
       >
@@ -156,6 +164,14 @@ function logout() {
           class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden dark:text-slate-300 dark:hover:bg-slate-800"
           @click="drawerOpen = true"
           aria-label="Меню"
+        >
+          <AppIcon name="menu" :size="22" />
+        </button>
+        <button
+          class="hidden rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:inline-flex dark:text-slate-300 dark:hover:bg-slate-800"
+          @click="collapsed = !collapsed"
+          :aria-label="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
+          :title="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
         >
           <AppIcon name="menu" :size="22" />
         </button>

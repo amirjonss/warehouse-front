@@ -4,11 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { money, toISODate } from '@/utils/format'
-import { clients, debts, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
+import { autoAllocatePayment, clients, debts, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 import { useToastStore } from '@/stores/toast'
+import { useConfirmStore } from '@/stores/confirm'
 
 const toast = useToastStore()
+const confirmStore = useConfirmStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -109,6 +111,18 @@ async function ensureDraft() {
 
 const canAllocate = computed(() => Number(header.amount) > 0)
 
+/** Сумма непогашенного долга клиента в валюте платежа — по ней проверяем возможность автораспределения до создания черновика. */
+const outstandingInCurrency = computed(() =>
+  debtLines.value.filter((l) => l.currency === header.currency).reduce((s, l) => s + Number(l.remaining), 0),
+)
+
+/** Общий долг клиента раздельно по валютам — для сводки над списком накладных. */
+const totalDebt = computed(() => {
+  const acc = { USD: 0, UZS: 0 }
+  for (const l of debtLines.value) acc[l.currency] += Number(l.remaining)
+  return acc
+})
+
 function toggle(line) {
   const key = `${line.saleId}:${line.currency}`
   if (selected[key]) {
@@ -181,6 +195,42 @@ async function post() {
     posting.value = false
   }
 }
+
+/**
+ * Автораспределение: бэкенд сам закроет долги клиента в валюте платежа от старых к
+ * новым и сразу проведёт платёж. Существующее ручное распределение при этом перезапишется.
+ */
+async function autoAllocate() {
+  if (!canAllocate.value) return
+  // Проверяем ДО создания черновика: иначе останется висеть черновик с заблокированной валютой, в которой нет долга.
+  if (outstandingInCurrency.value <= 0.004) {
+    error.value = `У клиента нет непогашенного долга в валюте ${header.currency}.`
+    return
+  }
+  if (Number(header.amount) > outstandingInCurrency.value + 0.004) {
+    error.value = `Сумма платежа превышает долг клиента в валюте ${header.currency} (${money(outstandingInCurrency.value, header.currency)}).`
+    return
+  }
+  if (
+    !(await confirmStore.ask(
+      `Распределить ${money(header.amount, header.currency)} по долгам клиента (от старых к новым) и провести платёж?`,
+      { confirmLabel: 'Распределить и провести', danger: false },
+    ))
+  )
+    return
+  error.value = ''
+  posting.value = true
+  try {
+    const p = await ensureDraft()
+    const posted = await autoAllocatePayment(p.id)
+    toast.success(`${posted?.number ?? draft.value.number} проведён`)
+    router.push(`/clients/${route.params.id}`)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    posting.value = false
+  }
+}
 </script>
 
 <template>
@@ -198,7 +248,17 @@ async function post() {
       -->
       <div class="order-2 flex min-w-0 flex-col gap-6 xl:order-1 xl:min-h-[calc(100vh-7rem)]">
         <section class="card flex flex-1 flex-col overflow-hidden rounded-2xl p-6 shadow-sm dark:shadow-lg dark:shadow-black/20">
-          <h2 class="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-100">Закрыть долг по накладным</h2>
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Закрыть долг по накладным</h2>
+            <div v-if="!loadingLines && (totalDebt.USD > 0 || totalDebt.UZS > 0)" class="flex items-center gap-1.5 text-sm">
+              <span class="text-slate-500 dark:text-slate-400">Общий долг:</span>
+              <span class="tabnum font-semibold text-amber-600 dark:text-amber-400">
+                <template v-if="totalDebt.USD > 0">{{ money(totalDebt.USD, 'USD') }}</template>
+                <template v-if="totalDebt.USD > 0 && totalDebt.UZS > 0"> · </template>
+                <template v-if="totalDebt.UZS > 0">{{ money(totalDebt.UZS, 'UZS') }}</template>
+              </span>
+            </div>
+          </div>
 
           <div v-if="loadingLines" class="text-sm text-slate-500 dark:text-slate-400">Загрузка…</div>
           <EmptyState v-else-if="!debtLines.length" icon="wallet" title="Нет непогашенных накладных" />
@@ -243,9 +303,19 @@ async function post() {
             Осталось распределить {{ money(remainingToAllocate, header.currency) }} — провести платёж можно только когда вся сумма закрыта по накладным.
           </p>
 
-          <button class="btn-ghost mt-4 w-full sm:w-auto" :disabled="!canAllocate || overAllocated" @click="saveAllocations">
-            <AppIcon name="check" :size="14" /> Сохранить распределение
-          </button>
+          <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button class="btn-ghost w-full sm:w-auto" :disabled="!canAllocate || overAllocated" @click="saveAllocations">
+              <AppIcon name="check" :size="14" /> Сохранить распределение
+            </button>
+            <button
+              class="btn-primary w-full sm:w-auto"
+              :disabled="!canAllocate || posting || outstandingInCurrency <= 0.004"
+              title="Закрыть долги от старых к новым и сразу провести"
+              @click="autoAllocate"
+            >
+              <AppIcon name="check" :size="14" /> Распределить автоматически
+            </button>
+          </div>
         </section>
       </div>
 
