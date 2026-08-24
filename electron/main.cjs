@@ -6,7 +6,8 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const DIST = path.join(__dirname, '..', 'dist')
-const OFFLINE_PAGE = path.join(__dirname, 'offline.html')
+// Экран без интернета общий с Android-сборкой: лежит в public/, попадает в dist/.
+const OFFLINE_PAGE = path.join(DIST, 'offline.html')
 
 /**
  * Фронт живёт на сервере: правки долетают до уже установленных копий после

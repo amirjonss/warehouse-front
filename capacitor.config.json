@@ -1,5 +1,9 @@
 {
   "appId": "com.wirehouse.app",
   "appName": "Wirehouse",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://warehouse.front.amirjon.uz",
+    "errorPath": "offline.html"
+  }
 }

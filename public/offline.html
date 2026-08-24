@@ -2,6 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Нет подключения</title>
     <style>
       :root {
@@ -34,6 +35,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 24px;
         background: var(--bg);
         color: var(--text);
         font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -41,8 +43,8 @@
         user-select: none;
       }
       .card {
-        width: min(520px, calc(100% - 48px));
-        padding: 40px;
+        width: min(520px, 100%);
+        padding: 40px 32px;
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 16px;
@@ -51,7 +53,6 @@
       .icon { font-size: 48px; line-height: 1; margin-bottom: 20px; }
       h1 { margin: 0 0 12px; font-size: 22px; font-weight: 600; color: var(--accent); }
       p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: var(--muted); }
-      .hint { margin-top: 20px; font-size: 13px; }
       ul {
         margin: 20px 0 0;
         padding: 0;
@@ -87,29 +88,66 @@
         Подключите интернет, и приложение продолжит работу само.
       </p>
       <ul>
-        <li>Проверьте кабель или Wi-Fi</li>
+        <li>Проверьте кабель, Wi-Fi или мобильный интернет</li>
         <li>Проверьте, открываются ли сайты в браузере</li>
         <li>Если интернет есть, а окно не пропадает — сервер недоступен, сообщите администратору</li>
       </ul>
       <button id="retry" type="button">Проверить сейчас</button>
-      <div class="status" id="status">Проверяем соединение каждые 10 секунд…</div>
+      <div class="status" id="status">Проверяем соединение…</div>
     </div>
 
     <script>
+      // Один экран на две платформы:
+      //  • десктоп (Electron) — проверку и переход делает main-процесс;
+      //  • Android (Capacitor) — эта страница открывается как server.errorPath,
+      //    поэтому проверяет связь и возвращается на сайт сама.
+      const REMOTE = 'https://warehouse.front.amirjon.uz'
+      const CHECK_INTERVAL = 7000
+
       const btn = document.getElementById('retry')
       const status = document.getElementById('status')
+      const electron = window.electronNet
 
-      btn.addEventListener('click', async () => {
-        btn.disabled = true
-        status.textContent = 'Проверяем соединение…'
-        // Если связь появилась, main-процесс уводит окно на приложение и эта
-        // страница просто исчезает; иначе возвращаем кнопку в исходное состояние.
-        await window.electronNet?.retry()
-        setTimeout(() => {
-          btn.disabled = false
-          status.textContent = 'Соединения по-прежнему нет. Проверяем каждые 10 секунд…'
-        }, 1200)
-      })
+      async function reachable() {
+        try {
+          // no-cors: ответ прочитать нельзя, но факт ответа — это и есть связь.
+          await fetch(REMOTE, { mode: 'no-cors', cache: 'no-store' })
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      async function check(manual) {
+        if (manual) {
+          btn.disabled = true
+          status.textContent = 'Проверяем соединение…'
+        }
+        if (electron) {
+          // Окно уедет на приложение само, если связь появилась.
+          await electron.retry()
+        } else if (await reachable()) {
+          location.replace(REMOTE)
+          return
+        }
+        if (manual) {
+          setTimeout(() => {
+            btn.disabled = false
+            status.textContent = 'Соединения по-прежнему нет. Проверяем автоматически…'
+          }, 1200)
+        }
+      }
+
+      btn.addEventListener('click', () => check(true))
+
+      // На Android опрашиваем сами; в Electron этим занят main-процесс.
+      if (!electron) {
+        status.textContent = 'Проверяем соединение каждые 7 секунд…'
+        setInterval(() => check(false), CHECK_INTERVAL)
+        window.addEventListener('online', () => check(false))
+      } else {
+        status.textContent = 'Проверяем соединение каждые 10 секунд…'
+      }
     </script>
   </body>
 </html>
