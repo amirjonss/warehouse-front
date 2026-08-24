@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, session, shell } = require('electron')
 const http = require('node:http')
 const https = require('node:https')
 const net = require('node:net')
@@ -241,7 +241,23 @@ async function createWindow() {
   await route(mainWindow)
 }
 
+/**
+ * index.html сервер отдаёт без Cache-Control, поэтому Chromium кэширует его
+ * «на глазок» (по 10% от возраста файла) и приложение может сутками показывать
+ * старую версию фронта. Просим перепроверять сам документ на каждой загрузке;
+ * хешированные /assets/* это не трогает — они по-прежнему берутся из кэша.
+ */
+function alwaysRevalidateDocument() {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/*'], types: ['mainFrame'] },
+    (details, callback) => {
+      callback({ requestHeaders: { ...details.requestHeaders, 'Cache-Control': 'no-cache' } })
+    },
+  )
+}
+
 app.whenReady().then(async () => {
+  alwaysRevalidateDocument()
   await createWindow()
   startConnectivityWatch()
 })

@@ -12,7 +12,7 @@ const routes = [
     path: '/',
     name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
-    meta: { title: 'Главная страница', perm: 'dashboard' },
+    meta: { title: 'Дашбоард', perm: 'dashboard' },
   },
   {
     path: '/stock',
