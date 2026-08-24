@@ -12,5 +12,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    watch: {
+      // dist-electron наполняет electron-builder (сотни МБ бинарников Electron).
+      // Если dev-сервер за ним следит, открытые хендлы ломают сборку установщика
+      // (EPERM при переименовании win-unpacked.tmp -> win-unpacked).
+      ignored: ['**/dist-electron/**'],
+    },
   },
 })

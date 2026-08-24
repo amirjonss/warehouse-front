@@ -6,7 +6,7 @@ ANDROID_HOME := $(HOME)/Library/Android/sdk
 ADB          := $(ANDROID_HOME)/platform-tools/adb
 APK          := android/app/build/outputs/apk/debug/app-debug.apk
 
-.PHONY: apk apk-install web desktop help
+.PHONY: apk apk-install web win desktop help
 .DEFAULT_GOAL := help
 
 apk: ## Пересобрать APK (фронт -> cap sync -> gradle)
@@ -23,6 +23,9 @@ apk-install: apk ## Собрать APK и установить на телефо
 web: ## Собрать фронт для сайта (папка dist/ — залить на сервер)
 	npm run build
 	@echo "dist/ готова к заливке на сервер"
+
+win: ## Собрать установщик для Windows (.exe, NSIS) — запускать на Windows
+	npm run electron:build:win
 
 desktop: ## Запустить десктоп-приложение (dev) на этом Mac
 	npm run electron:dev

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Нет подключения</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --accent: #dc2626;
+        --btn: #0f172a;
+        --btn-text: #ffffff;
+        --border: #e2e8f0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f172a;
+          --card: #1e293b;
+          --text: #f1f5f9;
+          --muted: #94a3b8;
+          --accent: #f87171;
+          --btn: #f1f5f9;
+          --btn-text: #0f172a;
+          --border: #334155;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .card {
+        width: min(520px, calc(100% - 48px));
+        padding: 40px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        text-align: center;
+      }
+      .icon { font-size: 48px; line-height: 1; margin-bottom: 20px; }
+      h1 { margin: 0 0 12px; font-size: 22px; font-weight: 600; color: var(--accent); }
+      p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: var(--muted); }
+      .hint { margin-top: 20px; font-size: 13px; }
+      ul {
+        margin: 20px 0 0;
+        padding: 0;
+        list-style: none;
+        text-align: left;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      li { padding: 6px 0 6px 22px; position: relative; }
+      li::before { content: "•"; position: absolute; left: 6px; }
+      button {
+        margin-top: 28px;
+        padding: 12px 28px;
+        font-size: 15px;
+        font-weight: 500;
+        font-family: inherit;
+        color: var(--btn-text);
+        background: var(--btn);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.55; cursor: default; }
+      .status { margin-top: 16px; font-size: 13px; min-height: 20px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="icon">📡</div>
+      <h1>Нет подключения к интернету</h1>
+      <p>
+        Wirehouse работает только онлайн — товары, отгрузки и долги хранятся на сервере.
+        Подключите интернет, и приложение продолжит работу само.
+      </p>
+      <ul>
+        <li>Проверьте кабель или Wi-Fi</li>
+        <li>Проверьте, открываются ли сайты в браузере</li>
+        <li>Если интернет есть, а окно не пропадает — сервер недоступен, сообщите администратору</li>
+      </ul>
+      <button id="retry" type="button">Проверить сейчас</button>
+      <div class="status" id="status">Проверяем соединение каждые 10 секунд…</div>
+    </div>
+
+    <script>
+      const btn = document.getElementById('retry')
+      const status = document.getElementById('status')
+
+      btn.addEventListener('click', async () => {
+        btn.disabled = true
+        status.textContent = 'Проверяем соединение…'
+        // Если связь появилась, main-процесс уводит окно на приложение и эта
+        // страница просто исчезает; иначе возвращаем кнопку в исходное состояние.
+        await window.electronNet?.retry()
+        setTimeout(() => {
+          btn.disabled = false
+          status.textContent = 'Соединения по-прежнему нет. Проверяем каждые 10 секунд…'
+        }, 1200)
+      })
+    </script>
+  </body>
+</html>
