@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Логотип для экрана запуска в виде вектора.
+  Геометрия та же, что в scripts/generate-icons.cjs, но каждая грань лежит
+  в своей группе — иначе их нельзя анимировать по отдельности.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:name="cube"
+        android:pivotX="256"
+        android:pivotY="276"
+        android:scaleX="0.85"
+        android:scaleY="0.85"
+        android:translateY="-20">
+        <group android:name="g_left">
+            <path
+                android:name="p_left"
+                android:fillAlpha="0.78"
+                android:fillColor="#FFFFFF"
+                android:pathData="M116,196 L256,276 L256,436 L116,356 Z" />
+        </group>
+        <group android:name="g_right">
+            <path
+                android:name="p_right"
+                android:fillAlpha="0.52"
+                android:fillColor="#FFFFFF"
+                android:pathData="M396,196 L256,276 L256,436 L396,356 Z" />
+        </group>
+        <group android:name="g_top">
+            <path
+                android:name="p_top"
+                android:fillAlpha="1"
+                android:fillColor="#FFFFFF"
+                android:pathData="M256,116 L396,196 L256,276 L116,196 Z" />
+        </group>
+    </group>
+</vector>

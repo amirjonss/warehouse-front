@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Сборка коробки: сначала съезжаются боковины, затем сверху ложится крышка. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_logo">
+    <target android:name="g_left" android:animation="@animator/splash_left_move" />
+    <target android:name="p_left" android:animation="@animator/splash_left_fade" />
+    <target android:name="g_right" android:animation="@animator/splash_right_move" />
+    <target android:name="p_right" android:animation="@animator/splash_right_fade" />
+    <target android:name="g_top" android:animation="@animator/splash_top_move" />
+    <target android:name="p_top" android:animation="@animator/splash_top_fade" />
+</animated-vector>

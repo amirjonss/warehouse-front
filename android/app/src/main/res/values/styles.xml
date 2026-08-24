@@ -16,7 +16,17 @@
     </style>
 
 
+    <!--
+        Экран запуска: фирменный фон и анимация сборки коробки.
+        На Android 12+ анимацию проигрывает система, на более старых
+        core-splashscreen показывает первый кадр вектора — тоже наш логотип,
+        а не картинка Capacitor.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:windowBackground">@drawable/splash_static</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_animated</item>
+        <item name="windowSplashScreenAnimationDuration">700</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

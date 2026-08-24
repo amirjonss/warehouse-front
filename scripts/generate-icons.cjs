@@ -60,6 +60,26 @@ const foregroundSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 
   <g transform="translate(256,256) scale(0.88) translate(-256,-276)">${CUBE}</g>
 </svg>`
 
+/**
+ * Заставки Capacitor. Размеры взяты из тех файлов, что положил сам Capacitor,
+ * чтобы ничего не поехало. С Android 12+ систему интересует не картинка, а
+ * анимированный вектор из res/drawable/splash_animated.xml — эти PNG остаются
+ * запасом для старых устройств.
+ */
+const SPLASHES = [
+  ['drawable', 480, 320],
+  ['drawable-land-mdpi', 480, 320],
+  ['drawable-land-hdpi', 800, 480],
+  ['drawable-land-xhdpi', 1280, 720],
+  ['drawable-land-xxhdpi', 1600, 960],
+  ['drawable-land-xxxhdpi', 1920, 1280],
+  ['drawable-port-mdpi', 320, 480],
+  ['drawable-port-hdpi', 480, 800],
+  ['drawable-port-xhdpi', 720, 1280],
+  ['drawable-port-xxhdpi', 960, 1600],
+  ['drawable-port-xxxhdpi', 1280, 1920],
+]
+
 const DENSITIES = [
   ['mdpi', 48, 108],
   ['hdpi', 72, 162],
@@ -82,6 +102,24 @@ async function rasterize(win, svg) {
   fs.writeFileSync(tmp, html, 'utf8')
   await win.loadFile(tmp)
   await new Promise((r) => setTimeout(r, 400))
+  const image = await win.webContents.capturePage()
+  fs.unlinkSync(tmp)
+  return image
+}
+
+/** Заставка: логотип по центру фирменного фона, размер задаётся под каждый бакет. */
+async function rasterizeSplash(win, width, height) {
+  const logo = Math.round(Math.min(width, height) * 0.28)
+  const html = `<html><body style="margin:0">
+    <div style="width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:center;
+                background:linear-gradient(135deg,${GRADIENT_FROM},${GRADIENT_TO})">
+      ${badgeSvg.replace('width="512" height="512"', `width="${logo}" height="${logo}"`)}
+    </div></body></html>`
+  const tmp = path.join(os.tmpdir(), 'wirehouse-splash.html')
+  fs.writeFileSync(tmp, html, 'utf8')
+  win.setContentSize(width, height)
+  await win.loadFile(tmp)
+  await new Promise((r) => setTimeout(r, 250))
   const image = await win.webContents.capturePage()
   fs.unlinkSync(tmp)
   return image
@@ -113,7 +151,6 @@ app.whenReady().then(async () => {
   const badge = await rasterize(win, badgeSvg)
   const round = await rasterize(win, roundSvg)
   const foreground = await rasterize(win, foregroundSvg)
-  win.destroy()
 
   console.log('Windows / macOS:')
   write(path.join(ROOT, 'build', 'icon.png'), badge.toPNG())
@@ -125,6 +162,13 @@ app.whenReady().then(async () => {
     writeResized(round, launcher, path.join(dir, 'ic_launcher_round.png'))
     writeResized(foreground, adaptive, path.join(dir, 'ic_launcher_foreground.png'))
   }
+
+  console.log('Заставки Android:')
+  for (const [dir, width, height] of SPLASHES) {
+    const image = await rasterizeSplash(win, width, height)
+    write(path.join(RES, dir, 'splash.png'), image.toPNG())
+  }
+  win.destroy()
 
   console.log('\nГотово. Дальше: npm run electron:build:win и make apk')
   app.quit()
