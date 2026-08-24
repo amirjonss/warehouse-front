@@ -43,7 +43,7 @@ deploy-prod-job:
     - echo "Deploying the PROD project..."
     - ssh -tt -o StrictHostKeyChecking=no -p ${DEPLOY_PORT_PROD} ${DEPLOY_HOST_PROD} "
         cd /root/sites/static/${PROJECT_NAME} &&
-        git reset --hard &&
-        git pull origin master &&
+        git fetch origin master &&
+        git reset --hard FETCH_HEAD &&
         docker compose up
       "
