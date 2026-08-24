@@ -1,7 +1,7 @@
 {
   "name": "wirehouse-front",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.4.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "apk": "npm run build && cap sync android && cd android && JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=$HOME/Library/Android/sdk ./gradlew assembleDebug",
+    "icons": "electron scripts/generate-icons.cjs",
     "electron:dev": "npm run build && electron .",
     "electron:build": "npm run build && electron-builder --mac",
     "electron:build:mac": "npm run build && electron-builder --mac",
