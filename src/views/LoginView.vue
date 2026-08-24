@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
+import AppLogo from '@/components/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -32,9 +33,7 @@ async function submit() {
   <div class="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
     <div class="w-full max-w-sm">
       <div class="mb-6 flex flex-col items-center text-center">
-        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
-          <AppIcon name="boxes" :size="28" />
-        </div>
+        <AppLogo :size="56" class="rounded-xl shadow-lg shadow-indigo-600/25" />
         <h1 class="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">Wirehouse</h1>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Складской учёт</p>
       </div>

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
+import AppLogo from '@/components/AppLogo.vue'
 import RateChip from '@/components/RateChip.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -76,9 +77,7 @@ function logout() {
       :data-collapsed="collapsed"
     >
       <div class="flex h-16 items-center gap-2.5 px-4 group-data-[collapsed=true]/sidebar:lg:justify-center group-data-[collapsed=true]/sidebar:lg:px-0">
-        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white">
-          <AppIcon name="boxes" :size="20" />
-        </div>
+        <AppLogo :size="36" class="shrink-0" />
         <div class="leading-tight group-data-[collapsed=true]/sidebar:lg:hidden">
           <div class="font-semibold text-slate-900 dark:text-white">Wirehouse</div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500">складской учёт</div>
