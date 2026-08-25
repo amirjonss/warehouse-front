@@ -92,6 +92,16 @@ async function remove(r) {
       продаже и оплате курс вводится вручную на каждой строке/платеже.
     </p>
 
+    <!-- Справочник: актуальные курсы банков с Bank.uz (внешний информер, ссылку на источник сохраняем по их условиям). -->
+    <div class="card-pad">
+      <div class="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Курсы банков — Bank.uz</div>
+      <div class="overflow-x-auto">
+        <a href="https://bank.uz/currency/cb.html" title="Bank.uz - все о банках Узбекистана" target="_blank" rel="noopener">
+          <img src="https://bank.uz/scripts/informer" alt="Курсы валют Bank.uz" class="max-w-full" />
+        </a>
+      </div>
+    </div>
+
     <div class="flex items-center justify-between">
       <div class="text-sm text-slate-500 dark:text-slate-400">Записей: {{ list.length }}</div>
       <button v-if="auth.can('exchangeRates')" class="btn-primary btn-sm" @click="openNew">

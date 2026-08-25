@@ -6,7 +6,7 @@ ANDROID_HOME := $(HOME)/Library/Android/sdk
 ADB          := $(ANDROID_HOME)/platform-tools/adb
 APK          := android/app/build/outputs/apk/debug/app-debug.apk
 
-.PHONY: apk apk-install web win desktop help
+.PHONY: apk apk-install web win mac desktop help
 .DEFAULT_GOAL := help
 
 apk: ## Пересобрать APK (фронт -> cap sync -> gradle)
@@ -26,6 +26,11 @@ web: ## Собрать фронт для сайта (папка dist/ — зал
 
 win: ## Собрать установщик для Windows (.exe, NSIS) — запускать на Windows
 	npm run electron:build:win
+
+mac: ## Собрать установщик для macOS (.dmg) — запускать на Mac
+	npm run electron:build:mac
+	@echo ""
+	@echo "DMG готов: dist-electron/ (Wirehouse-<версия>.dmg)"
 
 desktop: ## Запустить десктоп-приложение (dev) на этом Mac
 	npm run electron:dev
