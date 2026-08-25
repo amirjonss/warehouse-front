@@ -38,6 +38,7 @@ const PERMISSIONS = {
     'dashboard',
     'stock',
     'products',
+    'exchangeRates',
     'sales',
     'sales.create',
     'clients',
