@@ -153,6 +153,18 @@ const routes = [
     meta: { title: 'Расходы', perm: 'expenses' },
   },
   {
+    path: '/cash',
+    name: 'cash',
+    component: () => import('@/views/CashView.vue'),
+    meta: { title: 'Моя касса', perm: 'cash' },
+  },
+  {
+    path: '/cash-sessions',
+    name: 'cash-sessions',
+    component: () => import('@/views/CashSessionsView.vue'),
+    meta: { title: 'Кассы продавцов', perm: 'cash.admin' },
+  },
+  {
     path: '/users',
     name: 'users',
     component: () => import('@/views/UsersView.vue'),

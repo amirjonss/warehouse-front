@@ -4,13 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { money, toISODate } from '@/utils/format'
-import { autoAllocatePayment, clients, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
+import { autoAllocatePayment, cashSessions, clients, exchangeRates, paymentAllocations, payments, sales, changePaymentStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
 import { useToastStore } from '@/stores/toast'
 import { useConfirmStore } from '@/stores/confirm'
+import { useAuthStore } from '@/stores/auth'
 
 const toast = useToastStore()
 const confirmStore = useConfirmStore()
+const auth = useAuthStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -22,6 +24,8 @@ const error = ref('')
 const loadingClient = ref(true)
 
 const header = reactive({ amount: '', currency: 'UZS', method: 'cash', docDate: toISODate() })
+/** Есть ли у текущего сотрудника открытая смена — от этого зависит приём наличных. */
+const hasOpenSession = ref(false)
 const draft = ref(null)
 const posting = ref(false)
 const referenceRate = ref('')
@@ -35,13 +39,17 @@ async function load() {
   loadingLines.value = true
   error.value = ''
   try {
-    const [c, rates, mySales] = await Promise.all([
+    const [c, rates, mySales, mySessions] = await Promise.all([
       clients.get(route.params.id),
       exchangeRates.list({ 'order[createdAt]': 'desc', itemsPerPage: 1 }),
       sales.list({ customer: route.params.id }),
+      // Наличные без открытой смены провести нельзя — предупреждаем до ввода сумм,
+      // а не отказом на кнопке «Провести».
+      cashSessions.list({ user: `/api/users/${auth.user.id}`, status: 'open', itemsPerPage: 1 }),
     ])
     client.value = c
     referenceRate.value = rates[0]?.rateBuy ?? ''
+    hasOpenSession.value = mySessions.length > 0
 
     // Долг берём прямо из полей продажи (outstandingUsd/outstandingUzs) — без отдельных запросов к /debts.
     const lines = []
@@ -345,6 +353,13 @@ async function autoAllocate() {
               <select v-model="header.method" class="input" :disabled="!!draft">
                 <option v-for="(label, key) in METHOD" :key="key" :value="key">{{ label }}</option>
               </select>
+              <p
+                v-if="header.method === 'cash' && !hasOpenSession"
+                class="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+              >
+                У вас нет открытой смены — наличные принять не получится.
+                <RouterLink to="/cash" class="font-medium underline">Открыть смену</RouterLink>
+              </p>
             </div>
             <div>
               <label class="label">Дата</label>

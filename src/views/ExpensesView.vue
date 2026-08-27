@@ -6,7 +6,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, toISODate, userName } from '@/utils/format'
+import { date, dualLabel, money, toISODate, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { useConfirmStore } from '@/stores/confirm'
@@ -24,11 +24,12 @@ const modal = ref(false)
 const saving = ref(false)
 const formError = ref('')
 
-const blank = () => ({ docDate: toISODate(), description: '', amount: '' })
+const blank = () => ({ docDate: toISODate(), description: '', amount: '', currency: 'UZS' })
 const form = reactive(blank())
 
 /** Плитка сверху — один агрегатный запрос (SUM на бэкенде), меняется вместе с периодом. */
-const summary = ref({ totalAmount: '0' })
+const summary = ref({ totalUsd: '0', totalUzs: '0' })
+const summaryLabel = computed(() => dualLabel(summary.value.totalUsd, summary.value.totalUzs))
 async function loadSummary() {
   try {
     const params = {}
@@ -105,6 +106,7 @@ async function save() {
       docDate: form.docDate,
       description: form.description.trim(),
       amount: String(form.amount),
+      currency: form.currency,
     })
     modal.value = false
     await Promise.all([loadPage(page.value), loadSummary()])
@@ -132,7 +134,8 @@ async function remove(e) {
   <div class="space-y-4">
     <div class="card-pad w-full sm:max-w-xs">
       <div class="text-xs text-slate-500 dark:text-slate-400">Расходы за период</div>
-      <div class="mt-1 tabnum text-lg font-semibold">{{ money(summary.totalAmount) }}</div>
+      <div class="mt-1 tabnum text-lg font-semibold">{{ summaryLabel.primary }}</div>
+      <div v-if="summaryLabel.secondary" class="tabnum text-xs text-slate-500 dark:text-slate-400">{{ summaryLabel.secondary }}</div>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
@@ -162,7 +165,7 @@ async function remove(e) {
             <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(e.docDate) }} · {{ userName(e.createdBy) }}</div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <span class="tabnum text-sm font-semibold text-red-600 dark:text-red-400">{{ money(e.amount) }}</span>
+            <span class="tabnum text-sm font-semibold text-red-600 dark:text-red-400">{{ money(e.amount, e.currency) }}</span>
             <button class="btn-ghost btn-sm" title="Удалить" @click="remove(e)">
               <AppIcon name="trash" :size="14" />
             </button>
@@ -185,7 +188,7 @@ async function remove(e) {
             <td class="td text-slate-500 dark:text-slate-400">{{ date(e.docDate) }}</td>
             <td class="td text-slate-700 dark:text-slate-300">{{ e.description }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ userName(e.createdBy) }}</td>
-            <td class="td tabnum font-medium text-red-600 dark:text-red-400">{{ money(e.amount) }}</td>
+            <td class="td tabnum font-medium text-red-600 dark:text-red-400">{{ money(e.amount, e.currency) }}</td>
             <td class="td text-right">
               <button class="btn-ghost btn-sm" title="Удалить" @click="remove(e)">
                 <AppIcon name="trash" :size="14" />
@@ -210,9 +213,18 @@ async function remove(e) {
           <label class="label">Описание</label>
           <textarea v-model="form.description" class="input" rows="3"></textarea>
         </div>
-        <div>
-          <label class="label">Сумма</label>
-          <input v-model="form.amount" type="number" step="0.01" class="input" />
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="label">Сумма</label>
+            <input v-model="form.amount" type="number" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="label">Валюта</label>
+            <select v-model="form.currency" class="input">
+              <option value="UZS">сўм</option>
+              <option value="USD">$</option>
+            </select>
+          </div>
         </div>
         <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>

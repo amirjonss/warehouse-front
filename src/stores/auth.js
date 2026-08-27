@@ -31,6 +31,8 @@ const PERMISSIONS = {
     'movements',
     'profits',
     'expenses',
+    'cash',
+    'cash.admin',
     'users',
     'prices.purchase',
   ],
@@ -46,6 +48,8 @@ const PERMISSIONS = {
     'debts',
     'payments.create',
     'expenses',
+    // Свою кассу продавец видит и ведёт; чужие смены и закрытие — только админ.
+    'cash',
   ],
 }
 

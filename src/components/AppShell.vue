@@ -42,6 +42,8 @@ const NAV = [
   { to: '/debts', icon: 'wallet', label: 'Долги', perm: 'debts' },
   { to: '/profits', icon: 'trendUp', label: 'Прибыль', perm: 'profits' },
   { to: '/expenses', icon: 'trendDown', label: 'Расходы', perm: 'expenses' },
+  { to: '/cash', icon: 'money', label: 'Моя касса', perm: 'cash' },
+  { to: '/cash-sessions', icon: 'wallet', label: 'Кассы продавцов', perm: 'cash.admin' },
   { to: '/movements', icon: 'list', label: 'Журнал движений', perm: 'movements' },
   { to: '/exchange-rates', icon: 'money', label: 'Курсы валют', perm: 'exchangeRates' },
   { to: '/users', icon: 'shield', label: 'Сотрудники', perm: 'users' },

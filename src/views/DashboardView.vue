@@ -3,10 +3,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SalesBarChart from '@/components/SalesBarChart.vue'
 import StatCard from '@/components/StatCard.vue'
-import { date, money, toISODate, addDays } from '@/utils/format'
+import { date, dualLabel, money, pluralRu, toISODate, addDays } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
-import { clientDebtSummary, expenseDaily, expenseSummary, productStockSummary, productTopSales, sales } from '@/api/resources'
+import { cashOnHands, clientDebtSummary, expenseDaily, expenseSummary, productStockSummary, productTopSales, sales } from '@/api/resources'
 
 const auth = useAuthStore()
 
@@ -26,7 +26,8 @@ const recentSales = ref([])
 const outOfStockList = ref([])
 const stockSummary = ref({ positions: 0, low: 0, outOfStock: 0 })
 const debtSummary = ref({ count: 0, totalDebtUsd: '0', totalDebtUzs: '0' })
-const expenseToday = ref({ totalAmount: '0' })
+const expenseToday = ref({ totalUsd: '0', totalUzs: '0' })
+const onHands = ref({ balanceUsd: '0', balanceUzs: '0', unconfirmedUsd: '0', unconfirmedUzs: '0', openSessions: 0 })
 const topProducts = ref([])
 
 async function loadSalesPeriod() {
@@ -66,6 +67,9 @@ async function load() {
     if (auth.can('expenses')) {
       calls.push(expenseSummary({ from: today, to: tomorrow }).then((s) => (expenseToday.value = s)))
     }
+    if (auth.can('cash.admin')) {
+      calls.push(cashOnHands().then((s) => (onHands.value = s)))
+    }
     await Promise.all(calls)
   } catch (e) {
     error.value = e.message
@@ -89,14 +93,19 @@ const revenue = computed(() => {
   }
   return acc
 })
-/** Первая строка — основная валюта, вторая (мельче, без "+") — вторая валюта, если есть обе. */
-function dualLabel(usd, uzs) {
-  if (usd && uzs) return { primary: money(usd, 'USD'), secondary: money(uzs, 'UZS') }
-  if (usd) return { primary: money(usd, 'USD'), secondary: '' }
-  return { primary: money(uzs, 'UZS'), secondary: '' }
-}
 const revenueLabel = computed(() => dualLabel(revenue.value.USD, revenue.value.UZS))
 const debtLabel = computed(() => dualLabel(Number(debtSummary.value.totalDebtUsd), Number(debtSummary.value.totalDebtUzs)))
+const expenseLabel = computed(() => dualLabel(expenseToday.value.totalUsd, expenseToday.value.totalUzs))
+const openSessionsHint = computed(
+  () => `${onHands.value.openSessions} ${pluralRu(onHands.value.openSessions, ['открытая смена', 'открытые смены', 'открытых смен'])}`,
+)
+/** Долг продавцов = наличные в сумке плюс отданное, но не подтверждённое владельцем. */
+const onHandsLabel = computed(() =>
+  dualLabel(
+    Number(onHands.value.balanceUsd) + Number(onHands.value.unconfirmedUsd),
+    Number(onHands.value.balanceUzs) + Number(onHands.value.unconfirmedUzs),
+  ),
+)
 
 const chartData = computed(() => {
   const out = []
@@ -120,7 +129,9 @@ const expenseChartData = computed(() => {
   for (let i = expensesPeriod.value - 1; i >= 0; i--) {
     const day = toISODate(addDays(new Date(), -i))
     const row = byDay.get(day)
-    out.push({ date: day, total: row ? Number(row.total) : 0, count: row?.count ?? 0 })
+    // Столбик рисуем по сумовой части: сложить с долларовой без курса нельзя,
+    // а курс дня на графике за две недели был бы враньём.
+    out.push({ date: day, total: row ? Number(row.totalUzs) : 0, count: row?.count ?? 0 })
   }
   return out
 })
@@ -141,8 +152,26 @@ const expenseChartData = computed(() => {
         tone="blue"
         to="/sales"
       />
-      <StatCard v-if="auth.can('expenses')" label="Расход сегодня" :value="money(expenseToday.totalAmount, 'UZS')" icon="trendDown" tone="red" to="/expenses" />
+      <StatCard
+        v-if="auth.can('expenses')"
+        label="Расход сегодня"
+        :value="expenseLabel.primary"
+        :sub-value="expenseLabel.secondary"
+        icon="trendDown"
+        tone="red"
+        to="/expenses"
+      />
       <StatCard label="Долг клиентов" :value="debtLabel.primary" :sub-value="debtLabel.secondary" icon="wallet" tone="amber" to="/debts" />
+      <StatCard
+        v-if="auth.can('cash.admin')"
+        label="На руках у продавцов"
+        :value="onHandsLabel.primary"
+        :sub-value="onHandsLabel.secondary"
+        :hint="openSessionsHint"
+        icon="money"
+        tone="slate"
+        to="/cash-sessions"
+      />
       <StatCard label="Позиций без остатка" :value="stockSummary.outOfStock" icon="boxes" tone="red" to="/stock" />
     </div>
 

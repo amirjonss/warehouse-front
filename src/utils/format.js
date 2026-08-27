@@ -71,6 +71,21 @@ export function moneyShort(value, currency = BASE_CURRENCY) {
   return money(n, currency)
 }
 
+/**
+ * Пара валют для плиток: доллар главной строкой, сум — подписью. Складывать их
+ * без курса нельзя, поэтому показываем два числа, а не одно.
+ *
+ * dualLabel(0, 1250000)  → { primary: '1 250 000 сўм', secondary: '' }
+ * dualLabel(43.5, 12000) → { primary: '43,50 $', secondary: '12 000 сўм' }
+ */
+export function dualLabel(usd, uzs) {
+  const u = Number(usd) || 0
+  const s = Number(uzs) || 0
+  if (u && s) return { primary: money(u, 'USD'), secondary: money(s, 'UZS') }
+  if (u) return { primary: money(u, 'USD'), secondary: '' }
+  return { primary: money(s, 'UZS'), secondary: '' }
+}
+
 /** Округление по правилам валюты: сум — до целого, доллар — до цента. */
 export function roundMoney(value, currency = BASE_CURRENCY) {
   const dec = CURRENCIES[currency]?.decimals ?? 0
