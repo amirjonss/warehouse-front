@@ -134,7 +134,13 @@ async function saveClose() {
 
 <template>
   <div class="space-y-4">
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="flex justify-end">
+      <RouterLink to="/cash-sessions/history" class="btn-ghost btn-sm">
+        <AppIcon name="clock" :size="16" /> История смен
+      </RouterLink>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 sm:gap-3">
       <StatCard
         label="На руках у продавцов"
         :value="onHandsLabel.primary"

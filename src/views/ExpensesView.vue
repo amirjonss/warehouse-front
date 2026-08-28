@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import CurrencyToggle from '@/components/CurrencyToggle.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Spinner from '@/components/Spinner.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -220,10 +221,7 @@ async function remove(e) {
           </div>
           <div>
             <label class="label">Валюта</label>
-            <select v-model="form.currency" class="input">
-              <option value="UZS">сўм</option>
-              <option value="USD">$</option>
-            </select>
+            <CurrencyToggle v-model="form.currency" />
           </div>
         </div>
         <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>

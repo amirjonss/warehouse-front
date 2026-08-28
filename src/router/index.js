@@ -165,6 +165,13 @@ const routes = [
     meta: { title: 'Кассы продавцов', perm: 'cash.admin' },
   },
   {
+    path: '/cash-sessions/history',
+    name: 'cash-sessions-history',
+    component: () => import('@/views/CashSessionsHistoryView.vue'),
+    // Продавцу история тоже нужна — вьюха сама прибивает фильтр к нему самому.
+    meta: { title: 'История смен', perm: 'cash' },
+  },
+  {
     path: '/users',
     name: 'users',
     component: () => import('@/views/UsersView.vue'),

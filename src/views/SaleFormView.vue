@@ -7,10 +7,13 @@ import EmptyState from '@/components/EmptyState.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { money, qty, rateFmt, rawPrice, toISODate, unitLabel } from '@/utils/format'
-import { clients, exchangeRates, paymentAllocations, payments, saleItems, sales, changePaymentStatus, changeSaleStatus } from '@/api/resources'
+import { clients, exchangeRates, openCashSession, paymentAllocations, payments, saleItems, sales, changePaymentStatus, changeSaleStatus } from '@/api/resources'
 import { iri, idFromIri } from '@/api/iri'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { api } from '@/api/client'
 
+const auth = useAuthStore()
 const toast = useToastStore()
 
 const route = useRoute()
@@ -284,11 +287,74 @@ const payNow = reactive({
   UZS: { amount: '', method: 'cash' },
 })
 
+/**
+ * Наличная оплата без открытой смены падает уже на бэкенде — но продажа к тому
+ * моменту проведена, и клиенту молча остаётся долг. Поэтому смену проверяем
+ * заранее, до проводки, и предлагаем открыть её прямо здесь.
+ */
+const cashSession = ref(null)
+const sessionChecked = ref(false)
+const openingSession = ref(false)
+
+async function loadCashSession() {
+  if (!auth.can('cash')) {
+    sessionChecked.value = true
+    return
+  }
+  try {
+    const { items: found } = await api.getPage('/cash_sessions', {
+      page: 1,
+      itemsPerPage: 1,
+      user: `/api/users/${auth.user.id}`,
+      status: 'open',
+    })
+    cashSession.value = found[0] ?? null
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    sessionChecked.value = true
+  }
+}
+onMounted(loadCashSession)
+
+async function openSession() {
+  openingSession.value = true
+  error.value = ''
+  try {
+    cashSession.value = await openCashSession()
+    toast.success('Смена открыта')
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    openingSession.value = false
+  }
+}
+
+const noSession = computed(() => sessionChecked.value && !cashSession.value && auth.can('cash'))
+
+/** Смену требуют только наличные: карта и перевод уходят на счёт компании мимо продавца. */
+const takesCash = computed(
+  () => paymentMode.value === 'now' && ['USD', 'UZS'].some((c) => totals.value[c] > 0 && payNow[c].method === 'cash'),
+)
+
+const cashBlocked = computed(() => noSession.value && takesCash.value)
+
+const canPost = computed(() => items.value.length > 0 && !posting.value && !cashBlocked.value)
+
 async function post() {
-  if (!draft.value || items.value.length === 0) return
+  if (!draft.value || items.value.length === 0 || cashBlocked.value) return
   posting.value = true
   error.value = ''
   try {
+    // Смену мог закрыть владелец, пока заполнялась продажа. Проверяем ещё раз до
+    // проводки: после неё откатить продажу из долга уже нечем.
+    if (takesCash.value) {
+      await loadCashSession()
+      if (!cashSession.value) {
+        error.value = 'Смена не открыта — наличные принять нельзя. Откройте смену и повторите.'
+        return
+      }
+    }
     await changeSaleStatus(draft.value.id, 'posted')
     if (paymentMode.value === 'now') {
       for (const c of ['USD', 'UZS']) {
@@ -634,6 +700,26 @@ async function post() {
                 </button>
               </div>
 
+              <!-- Пока смена не открыта, наличные принимать некуда — говорим об этом до проводки -->
+              <div v-if="noSession" class="mt-3 rounded-lg bg-amber-50 p-3 dark:bg-amber-500/10">
+                <div class="flex items-start gap-2 text-amber-700 dark:text-amber-400">
+                  <AppIcon name="alert" :size="14" class="mt-0.5 shrink-0" />
+                  <div class="text-xs">
+                    <div class="font-medium">Смена не открыта</div>
+                    <p class="mt-0.5">
+                      Наличные принять некуда: продажа прошла бы, а оплата — нет, и клиент остался бы должен.
+                      Откройте смену или выберите карту либо перевод.
+                    </p>
+                  </div>
+                </div>
+                <button class="btn-primary btn-sm mt-2 w-full" :disabled="openingSession" @click="openSession">
+                  <AppIcon name="plus" :size="14" /> Открыть смену
+                </button>
+              </div>
+              <p v-else-if="cashSession && paymentMode === 'now'" class="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                Наличные пойдут в смену {{ cashSession.number }}
+              </p>
+
               <div v-if="paymentMode === 'now'" class="mt-3 space-y-3">
                 <p v-if="totals.USD <= 0 && totals.UZS <= 0" class="text-xs text-slate-400 dark:text-slate-500">
                   Добавьте позиции — сумма оплаты подставится автоматически.
@@ -672,7 +758,12 @@ async function post() {
                 <template v-if="totals.USD <= 0 && totals.UZS <= 0">0</template>
               </span>
             </div>
-            <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
+            <button
+              class="btn-primary w-full"
+              :disabled="!canPost"
+              :title="cashBlocked ? 'Сначала откройте смену — иначе наличные принять не получится' : undefined"
+              @click="post"
+            >
               {{ paymentMode === 'now' ? 'Провести и принять оплату' : 'Провести продажу' }}
             </button>
           </div>
@@ -693,7 +784,15 @@ async function post() {
           <template v-if="totals.USD <= 0 && totals.UZS <= 0">0</template>
         </span>
       </div>
-      <button class="btn-primary w-full" :disabled="items.length === 0 || posting" @click="post">
+      <p v-if="cashBlocked" class="text-center text-xs text-amber-600 dark:text-amber-400">
+        Смена не открыта — наличные принять нельзя
+      </p>
+      <button
+        class="btn-primary w-full"
+        :disabled="!canPost"
+        :title="cashBlocked ? 'Сначала откройте смену — иначе наличные принять не получится' : undefined"
+        @click="post"
+      >
         {{ paymentMode === 'now' ? 'Провести и принять оплату' : 'Провести продажу' }}
       </button>
     </div>

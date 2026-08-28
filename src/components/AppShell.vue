@@ -29,27 +29,59 @@ watch(collapsed, (v) => localStorage.setItem(SIDEBAR_KEY, v ? '1' : '0'))
 const profileMenuOpen = ref(false)
 watch(() => route.fullPath, () => (profileMenuOpen.value = false))
 
+// Разделы меню: пунктов стало слишком много для одного списка. Заголовок
+// пустой — группа идёт без подписи (дашборд), в свёрнутом сайдбаре подписи
+// заменяет разделительная линия.
 const NAV = [
-  { to: '/', icon: 'dashboard', label: 'Дашборд', perm: 'dashboard' },
-  { to: '/stock', icon: 'boxes', label: 'Остатки', perm: 'stock' },
-  { to: '/products', icon: 'tag', label: 'Товары', perm: 'products' },
-  { to: '/categories', icon: 'tag', label: 'Категории', perm: 'categories' },
-  { to: '/receipts', icon: 'receipt', label: 'Приход', perm: 'receipts' },
-  { to: '/sales', icon: 'cart', label: 'Продажи', perm: 'sales' },
-  { to: '/writeoffs', icon: 'trash', label: 'Списания', perm: 'writeoffs' },
-  { to: '/clients', icon: 'users', label: 'Клиенты', perm: 'clients' },
-  { to: '/suppliers', icon: 'truck', label: 'Поставщики', perm: 'suppliers' },
-  { to: '/debts', icon: 'wallet', label: 'Долги', perm: 'debts' },
-  { to: '/profits', icon: 'trendUp', label: 'Прибыль', perm: 'profits' },
-  { to: '/expenses', icon: 'trendDown', label: 'Расходы', perm: 'expenses' },
-  { to: '/cash', icon: 'money', label: 'Моя касса', perm: 'cash' },
-  { to: '/cash-sessions', icon: 'wallet', label: 'Кассы продавцов', perm: 'cash.admin' },
-  { to: '/movements', icon: 'list', label: 'Журнал движений', perm: 'movements' },
-  { to: '/exchange-rates', icon: 'money', label: 'Курсы валют', perm: 'exchangeRates' },
-  { to: '/users', icon: 'shield', label: 'Сотрудники', perm: 'users' },
+  {
+    title: '',
+    items: [{ to: '/', icon: 'dashboard', label: 'Дашборд', perm: 'dashboard' }],
+  },
+  {
+    title: 'Склад',
+    items: [
+      { to: '/stock', icon: 'boxes', label: 'Остатки', perm: 'stock' },
+      { to: '/products', icon: 'tag', label: 'Товары', perm: 'products' },
+      { to: '/categories', icon: 'tag', label: 'Категории', perm: 'categories' },
+      { to: '/receipts', icon: 'receipt', label: 'Приход', perm: 'receipts' },
+      { to: '/writeoffs', icon: 'trash', label: 'Списания', perm: 'writeoffs' },
+      { to: '/suppliers', icon: 'truck', label: 'Поставщики', perm: 'suppliers' },
+      { to: '/movements', icon: 'list', label: 'Журнал движений', perm: 'movements' },
+    ],
+  },
+  {
+    title: 'Продажи',
+    items: [
+      { to: '/sales', icon: 'cart', label: 'Продажи', perm: 'sales' },
+      { to: '/clients', icon: 'users', label: 'Клиенты', perm: 'clients' },
+      { to: '/debts', icon: 'wallet', label: 'Долги', perm: 'debts' },
+    ],
+  },
+  {
+    title: 'Деньги',
+    items: [
+      { to: '/cash', icon: 'money', label: 'Моя касса', perm: 'cash' },
+      { to: '/cash-sessions', icon: 'wallet', label: 'Кассы продавцов', perm: 'cash.admin' },
+      { to: '/cash-sessions/history', icon: 'clock', label: 'История смен', perm: 'cash' },
+      { to: '/expenses', icon: 'trendDown', label: 'Расходы', perm: 'expenses' },
+      { to: '/profits', icon: 'trendUp', label: 'Прибыль', perm: 'profits' },
+    ],
+  },
+  {
+    title: 'Справочники',
+    items: [
+      { to: '/exchange-rates', icon: 'money', label: 'Курсы валют', perm: 'exchangeRates' },
+      { to: '/users', icon: 'shield', label: 'Сотрудники', perm: 'users' },
+    ],
+  },
 ]
 
-const nav = computed(() => NAV.filter((i) => auth.can(i.perm)))
+// Раздел, в котором продавцу ничего не доступно, не показываем вовсе.
+const nav = computed(() =>
+  NAV.map((group) => ({ ...group, items: group.items.filter((i) => auth.can(i.perm)) })).filter((g) => g.items.length),
+)
+
+const navPaths = computed(() => nav.value.flatMap((g) => g.items.map((i) => i.to)))
 
 const initials = computed(() => {
   const first = auth.user?.firstName?.[0] ?? ''
@@ -60,9 +92,50 @@ const initials = computed(() => {
 
 const pageTitle = computed(() => route.meta.title ?? '')
 
-function isActive(to) {
-  return to === '/' ? route.path === '/' : route.path.startsWith(to)
+/**
+ * Подсвечиваем ровно один пункт: сравниваем по границе сегмента (иначе /cash
+ * горел бы и на /cash-sessions) и из подходящих берём самый длинный — у
+ * «Истории смен» есть свой пункт, и родительские «Кассы продавцов» на ней гаснут.
+ */
+const activePath = computed(() => {
+  const matches = navPaths.value.filter((to) =>
+    to === '/' ? route.path === '/' : route.path === to || route.path.startsWith(to + '/'),
+  )
+  return matches.sort((a, b) => b.length - a.length)[0] ?? ''
+})
+
+const isActive = (to) => to === activePath.value
+
+/**
+ * Сворачивание разделов. Храним закрытые, а не открытые: новый раздел в меню
+ * должен появиться раскрытым, а не спрятаться у тех, кто уже пользуется приложением.
+ */
+const NAV_GROUPS_KEY = 'wh_nav_groups_closed'
+const closedGroups = ref(new Set(JSON.parse(localStorage.getItem(NAV_GROUPS_KEY) ?? '[]')))
+
+function persistGroups() {
+  localStorage.setItem(NAV_GROUPS_KEY, JSON.stringify([...closedGroups.value]))
 }
+
+function toggleGroup(title) {
+  if (closedGroups.value.has(title)) closedGroups.value.delete(title)
+  else closedGroups.value.add(title)
+  persistGroups()
+}
+
+const isGroupOpen = (title) => !title || !closedGroups.value.has(title)
+
+const activeGroup = computed(() => nav.value.find((g) => g.items.some((i) => i.to === activePath.value))?.title ?? '')
+
+// Переход по ссылке (в том числе из карточки или с дашборда) раскрывает раздел,
+// в котором оказался пользователь — иначе активный пункт остаётся невидимым.
+watch(
+  activeGroup,
+  (title) => {
+    if (title && closedGroups.value.delete(title)) persistGroups()
+  },
+  { immediate: true },
+)
 
 function logout() {
   auth.logout()
@@ -93,18 +166,56 @@ function logout() {
         </button>
       </div>
 
-      <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        <RouterLink
-          v-for="item in nav"
-          :key="item.to"
-          :to="item.to"
-          class="nav-link group-data-[collapsed=true]/sidebar:lg:justify-center"
-          :class="{ 'nav-link-active': isActive(item.to) }"
-          :title="collapsed ? item.label : undefined"
-        >
-          <AppIcon :name="item.icon" :size="18" class="shrink-0" />
-          <span class="group-data-[collapsed=true]/sidebar:lg:hidden">{{ item.label }}</span>
-        </RouterLink>
+      <nav class="flex-1 overflow-y-auto px-3 py-2">
+        <div v-for="group in nav" :key="group.title" class="space-y-1">
+          <template v-if="group.title">
+            <button
+              type="button"
+              class="flex w-full items-center gap-1 px-3 pt-4 pb-1 text-[10px] font-semibold tracking-wider text-slate-400 uppercase transition-colors hover:text-slate-600 group-data-[collapsed=true]/sidebar:lg:hidden dark:text-slate-500 dark:hover:text-slate-300"
+              :aria-expanded="isGroupOpen(group.title)"
+              @click="toggleGroup(group.title)"
+            >
+              {{ group.title }}
+              <AppIcon
+                name="chevronDown"
+                :size="12"
+                class="ml-auto transition-transform"
+                :class="isGroupOpen(group.title) ? '' : '-rotate-90'"
+              />
+            </button>
+            <!--
+              В узком сайдбаре подписи не видно, поэтому тот же переключатель —
+              это сама разделительная линия с шевроном по центру.
+            -->
+            <button
+              type="button"
+              class="mx-2 my-2 hidden w-[calc(100%-1rem)] justify-center border-t border-slate-200 pt-1.5 text-slate-400 transition-colors hover:text-slate-600 group-data-[collapsed=true]/sidebar:lg:flex dark:border-slate-800 dark:text-slate-500 dark:hover:text-slate-300"
+              :title="group.title"
+              :aria-expanded="isGroupOpen(group.title)"
+              @click="toggleGroup(group.title)"
+            >
+              <AppIcon
+                name="chevronDown"
+                :size="12"
+                class="transition-transform"
+                :class="isGroupOpen(group.title) ? '' : '-rotate-90'"
+              />
+            </button>
+          </template>
+          <div class="space-y-1" :class="isGroupOpen(group.title) ? '' : 'hidden'">
+            <RouterLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              class="nav-link group-data-[collapsed=true]/sidebar:lg:justify-center"
+              :class="{ 'nav-link-active': isActive(item.to) }"
+              :title="collapsed ? item.label : undefined"
+            >
+              <AppIcon :name="item.icon" :size="18" class="shrink-0" />
+              <span class="group-data-[collapsed=true]/sidebar:lg:hidden">{{ item.label }}</span>
+            </RouterLink>
+          </div>
+        </div>
       </nav>
 
       <div class="relative border-t border-slate-300 p-3 dark:border-slate-800">

@@ -12,6 +12,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import CurrencyToggle from '@/components/CurrencyToggle.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Spinner from '@/components/Spinner.vue'
 import StatCard from '@/components/StatCard.vue'
@@ -200,9 +201,14 @@ function openExpense() {
       title="Смена не открыта"
       text="Пока смена закрыта, принимать наличные нельзя — деньги некуда записать."
     >
-      <button class="btn-primary btn-sm" :disabled="busy" @click="openSession">
-        <AppIcon name="plus" :size="16" /> Открыть смену
-      </button>
+      <div class="flex flex-wrap justify-center gap-2">
+        <button class="btn-primary btn-sm" :disabled="busy" @click="openSession">
+          <AppIcon name="plus" :size="16" /> Открыть смену
+        </button>
+        <RouterLink to="/cash-sessions/history" class="btn-ghost btn-sm">
+          <AppIcon name="clock" :size="16" /> История смен
+        </RouterLink>
+      </div>
     </EmptyState>
 
     <template v-else>
@@ -212,6 +218,9 @@ function openExpense() {
           с {{ dateTime(session.openedAt) }}
         </div>
         <div class="ml-auto flex gap-2">
+          <RouterLink to="/cash-sessions/history" class="btn-ghost btn-sm">
+            <AppIcon name="clock" :size="16" /> История смен
+          </RouterLink>
           <button class="btn-ghost btn-sm" @click="openExpense">
             <AppIcon name="trendDown" :size="16" /> Расход
           </button>
@@ -221,7 +230,8 @@ function openExpense() {
         </div>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-3">
+      <!-- На телефоне: две плитки в ряд, «Собрано» во всю ширину — оно итоговое. -->
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         <StatCard
           label="В сумке"
           :value="balanceLabel.primary"
@@ -239,6 +249,7 @@ function openExpense() {
           tone="slate"
         />
         <StatCard
+          class="col-span-2 sm:col-span-1"
           label="Собрано за смену"
           :value="collectedLabel.primary"
           :sub-value="collectedLabel.secondary"
@@ -308,10 +319,7 @@ function openExpense() {
           </div>
           <div>
             <label class="label">Валюта</label>
-            <select v-model="handoverForm.currency" class="input">
-              <option value="UZS">сўм</option>
-              <option value="USD">$</option>
-            </select>
+            <CurrencyToggle v-model="handoverForm.currency" />
           </div>
         </div>
         <div>
@@ -341,10 +349,7 @@ function openExpense() {
           </div>
           <div>
             <label class="label">Валюта</label>
-            <select v-model="expenseForm.currency" class="input">
-              <option value="UZS">сўм</option>
-              <option value="USD">$</option>
-            </select>
+            <CurrencyToggle v-model="expenseForm.currency" />
           </div>
         </div>
         <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
