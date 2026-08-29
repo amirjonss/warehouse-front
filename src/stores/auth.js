@@ -33,6 +33,7 @@ const PERMISSIONS = {
     'expenses',
     'cash',
     'cash.admin',
+    'reports',
     'users',
     'prices.purchase',
   ],

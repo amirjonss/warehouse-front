@@ -68,6 +68,13 @@ const NAV = [
     ],
   },
   {
+    title: 'Отчёты',
+    items: [
+      { to: '/reports/sales', icon: 'trendUp', label: 'Анализ продаж', perm: 'reports' },
+      { to: '/reports/abc', icon: 'layers', label: 'ABC-анализ', perm: 'reports' },
+    ],
+  },
+  {
     title: 'Справочники',
     items: [
       { to: '/exchange-rates', icon: 'money', label: 'Курсы валют', perm: 'exchangeRates' },

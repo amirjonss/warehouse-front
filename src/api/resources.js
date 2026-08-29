@@ -31,6 +31,10 @@ export const clientDebtAging = () => api.post('/clients/debt-aging')
 export const profitSummary = (params) => api.post('/profits/summary', undefined, params)
 export const expenseSummary = (params) => api.post('/expenses/summary', undefined, params)
 export const expenseDaily = (params) => api.post('/expenses/daily', undefined, params)
+/** ABC-анализ товаров: metric, currency, from, to, category, thresholdA, thresholdB — всё query-строкой. */
+export const productAbcAnalysis = (params) => api.post('/products/abc-analysis', undefined, params)
+/** Анализ продаж по периодам: interval, currency, from, to, category — тоже query-строкой. */
+export const salesAnalysis = (params) => api.post('/sales/analysis', undefined, params)
 
 export const changeReceiptStatus = (id, status) => changeStatus('/receipts', id, status)
 export const changeSaleStatus = (id, status) => changeStatus('/sales', id, status)

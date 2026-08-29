@@ -172,6 +172,18 @@ const routes = [
     meta: { title: 'История смен', perm: 'cash' },
   },
   {
+    path: '/reports/sales',
+    name: 'report-sales',
+    component: () => import('@/views/SalesAnalysisView.vue'),
+    meta: { title: 'Анализ продаж', perm: 'reports' },
+  },
+  {
+    path: '/reports/abc',
+    name: 'report-abc',
+    component: () => import('@/views/AbcAnalysisView.vue'),
+    meta: { title: 'ABC-анализ', perm: 'reports' },
+  },
+  {
     path: '/users',
     name: 'users',
     component: () => import('@/views/UsersView.vue'),
