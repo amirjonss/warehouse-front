@@ -86,6 +86,16 @@ export function dualLabel(usd, uzs) {
   return { primary: money(s, 'UZS'), secondary: '' }
 }
 
+/** Одна строка из двух валют: «43,50 $ + 12 000 сўм». Если оба нули — `empty`. */
+export function dualMoney(usd, uzs, empty = '—') {
+  const u = Number(usd) || 0
+  const s = Number(uzs) || 0
+  const parts = []
+  if (u) parts.push(money(u, 'USD'))
+  if (s) parts.push(money(s, 'UZS'))
+  return parts.join(' + ') || empty
+}
+
 /** Округление по правилам валюты: сум — до целого, доллар — до цента. */
 export function roundMoney(value, currency = BASE_CURRENCY) {
   const dec = CURRENCIES[currency]?.decimals ?? 0

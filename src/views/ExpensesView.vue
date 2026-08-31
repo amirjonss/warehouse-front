@@ -10,10 +10,13 @@ import Pagination from '@/components/Pagination.vue'
 import { date, dualLabel, money, toISODate, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
+import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
+import { idFromIri } from '@/api/iri'
 import { api } from '@/api/client'
-import { expenses, expenseSummary } from '@/api/resources'
+import { cashAccounts, expenses, expenseSummary } from '@/api/resources'
 
+const auth = useAuthStore()
 const confirmStore = useConfirmStore()
 
 const { from, to, specificDate, monthLabel, monthLabelShort, applyMonth, shiftMonth, applySpecificDate } = useDateRangeFilter()
@@ -25,8 +28,25 @@ const modal = ref(false)
 const saving = ref(false)
 const formError = ref('')
 
-const blank = () => ({ docDate: toISODate(), description: '', amount: '', currency: 'UZS' })
+const blank = () => ({ docDate: toISODate(), description: '', amount: '', currency: 'UZS', account: '' })
 const form = reactive(blank())
+
+/**
+ * Откуда взяты деньги. У продавца выбора нет — он тратит из своей смены, и бэкенд
+ * находит её сам. Владелец счетами распоряжается, но своей смены обычно не имеет,
+ * поэтому ему источник приходится называть.
+ */
+const accountList = ref([])
+const canSpendFromAccount = computed(() => auth.can('wallet'))
+const accountsInCurrency = computed(() => accountList.value.filter((a) => a.currency === form.currency))
+
+// Валюта расхода и валюта счёта — одно и то же: доллары со счёта в сумах не платят.
+watch(
+  () => form.currency,
+  () => {
+    if (!accountsInCurrency.value.some((a) => `/api/cash_accounts/${a.id}` === form.account)) form.account = ''
+  },
+)
 
 /** Плитка сверху — один агрегатный запрос (SUM на бэкенде), меняется вместе с периодом. */
 const summary = ref({ totalUsd: '0', totalUzs: '0' })
@@ -75,6 +95,12 @@ async function loadPage(p) {
 onMounted(() => {
   loadPage(1)
   loadSummary()
+  if (canSpendFromAccount.value) {
+    cashAccounts.list({ 'order[id]': 'asc' }).then(
+      (list) => (accountList.value = list),
+      () => {},
+    )
+  }
 })
 
 watch(searchQuery, () => {
@@ -108,6 +134,8 @@ async function save() {
       description: form.description.trim(),
       amount: String(form.amount),
       currency: form.currency,
+      // Пустой счёт — расход из своей смены: бэкенд ждёт именно отсутствие поля.
+      ...(form.account ? { account: form.account } : {}),
     })
     modal.value = false
     await Promise.all([loadPage(page.value), loadSummary()])
@@ -116,6 +144,15 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+/** Источник расхода: счёт компании (по имени, если он подгружен) или смена автора. */
+function sourceLabel(e) {
+  if (e.account) {
+    const id = String(idFromIri(e.account))
+    return accountList.value.find((a) => String(a.id) === id)?.name ?? 'Счёт компании'
+  }
+  return e.cashSession ? 'Из смены' : '—'
 }
 
 async function remove(e) {
@@ -163,7 +200,9 @@ async function remove(e) {
         <div v-for="e in pageItems" :key="e.id" class="flex items-start justify-between gap-2 p-4">
           <div class="min-w-0">
             <div class="break-words font-medium text-slate-800 dark:text-slate-100">{{ e.description }}</div>
-            <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ date(e.docDate) }} · {{ userName(e.createdBy) }}</div>
+            <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {{ date(e.docDate) }} · {{ userName(e.createdBy) }} · {{ sourceLabel(e) }}
+            </div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <span class="tabnum text-sm font-semibold text-red-600 dark:text-red-400">{{ money(e.amount, e.currency) }}</span>
@@ -180,6 +219,7 @@ async function remove(e) {
             <th class="th">Дата</th>
             <th class="th">Описание</th>
             <th class="th">Сотрудник</th>
+            <th class="th">Источник</th>
             <th class="th">Сумма</th>
             <th class="th"></th>
           </tr>
@@ -189,6 +229,7 @@ async function remove(e) {
             <td class="td text-slate-500 dark:text-slate-400">{{ date(e.docDate) }}</td>
             <td class="td text-slate-700 dark:text-slate-300">{{ e.description }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ userName(e.createdBy) }}</td>
+            <td class="td text-slate-500 dark:text-slate-400">{{ sourceLabel(e) }}</td>
             <td class="td tabnum font-medium text-red-600 dark:text-red-400">{{ money(e.amount, e.currency) }}</td>
             <td class="td text-right">
               <button class="btn-ghost btn-sm" title="Удалить" @click="remove(e)">
@@ -224,6 +265,19 @@ async function remove(e) {
             <CurrencyToggle v-model="form.currency" />
           </div>
         </div>
+        <div v-if="canSpendFromAccount">
+          <label class="label">Откуда деньги</label>
+          <select v-model="form.account" class="input">
+            <option value="">Из моей смены</option>
+            <option v-for="a in accountsInCurrency" :key="a.id" :value="`/api/cash_accounts/${a.id}`">
+              {{ a.name }} · {{ money(a.balance, a.currency) }}
+            </option>
+          </select>
+          <p class="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+            Со счёта компании платит владелец; продавец тратит из своей смены.
+          </p>
+        </div>
+
         <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">{{ formError }}</p>
       </div>
       <template #footer>

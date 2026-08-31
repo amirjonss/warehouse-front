@@ -4,6 +4,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
+import { dualMoney } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { suppliers } from '@/api/resources'
@@ -96,7 +97,7 @@ async function remove(s) {
   <div class="space-y-4">
     <div class="flex flex-wrap items-center gap-2">
       <input v-model="search" class="input max-w-xs" placeholder="Поиск по названию/контакту" />
-      <button class="btn-primary btn-sm ml-auto" @click="openNew">
+      <button v-if="auth.can('suppliers.edit')" class="btn-primary btn-sm ml-auto" @click="openNew">
         <AppIcon name="plus" :size="16" /> Добавить
       </button>
     </div>
@@ -108,10 +109,12 @@ async function remove(s) {
       <div v-for="s in filtered()" :key="s.id" class="card-pad">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ s.name }}</div>
+            <RouterLink :to="`/suppliers/${s.id}`" class="truncate font-medium text-slate-800 dark:text-slate-100 hover:text-indigo-600">
+              {{ s.name }}
+            </RouterLink>
             <div v-if="!s.isActive" class="badge mt-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">не активен</div>
           </div>
-          <button class="btn-ghost btn-sm shrink-0" @click="openEdit(s)"><AppIcon name="edit" :size="14" /></button>
+          <button v-if="auth.can('suppliers.edit')" class="btn-ghost btn-sm shrink-0" @click="openEdit(s)"><AppIcon name="edit" :size="14" /></button>
         </div>
         <div v-if="s.contact" class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ s.contact }}</div>
         <div v-if="s.phone" class="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
@@ -120,7 +123,22 @@ async function remove(s) {
         <div v-if="s.address" class="mt-1 flex items-start gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <AppIcon name="pin" :size="14" class="mt-0.5 shrink-0" /> {{ s.address }}
         </div>
-        <button class="btn-ghost btn-sm mt-3 w-full text-red-600 dark:text-red-400" @click="remove(s)">Удалить</button>
+        <div class="mt-3 flex items-center justify-between border-t border-slate-200 pt-2.5 text-sm dark:border-slate-800">
+          <span class="text-slate-500 dark:text-slate-400">Мы должны</span>
+          <span class="tabnum font-medium" :class="Number(s.debtUsd) > 0 || Number(s.debtUzs) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'">
+            {{ dualMoney(s.debtUsd, s.debtUzs, 'рассчитались') }}
+          </span>
+        </div>
+        <div class="mt-2 flex gap-2">
+          <RouterLink
+            v-if="auth.can('supplierPayments.create') && (Number(s.debtUsd) > 0 || Number(s.debtUzs) > 0)"
+            :to="`/suppliers/${s.id}/payment/new`"
+            class="btn-ghost btn-sm flex-1"
+          >
+            Оплатить
+          </RouterLink>
+          <button v-if="auth.can('suppliers.edit')" class="btn-ghost btn-sm flex-1 text-red-600 dark:text-red-400" @click="remove(s)">Удалить</button>
+        </div>
       </div>
     </div>
     <EmptyState v-else-if="!loading" icon="truck" title="Поставщиков пока нет" />

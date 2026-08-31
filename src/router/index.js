@@ -129,6 +129,30 @@ const routes = [
     meta: { title: 'Поставщики', perm: 'suppliers' },
   },
   {
+    path: '/suppliers/:id',
+    name: 'supplier',
+    component: () => import('@/views/SupplierDetailView.vue'),
+    meta: { title: 'Карточка поставщика', perm: 'suppliers' },
+  },
+  {
+    path: '/suppliers/:id/payment/new',
+    name: 'supplier-payment-new',
+    component: () => import('@/views/SupplierPaymentFormView.vue'),
+    meta: { title: 'Оплата поставщику', perm: 'supplierPayments.create' },
+  },
+  {
+    path: '/suppliers/:id/payment/:paymentId/edit',
+    name: 'supplier-payment-edit',
+    component: () => import('@/views/SupplierPaymentFormView.vue'),
+    meta: { title: 'Оплата поставщику', perm: 'supplierPayments.create' },
+  },
+  {
+    path: '/supplier-debts',
+    name: 'supplier-debts',
+    component: () => import('@/views/SupplierDebtsView.vue'),
+    meta: { title: 'Долги поставщикам', perm: 'supplierDebts' },
+  },
+  {
     path: '/debts',
     name: 'debts',
     component: () => import('@/views/DebtsView.vue'),
@@ -170,6 +194,30 @@ const routes = [
     component: () => import('@/views/CashSessionsHistoryView.vue'),
     // Продавцу история тоже нужна — вьюха сама прибивает фильтр к нему самому.
     meta: { title: 'История смен', perm: 'cash' },
+  },
+  {
+    path: '/wallet',
+    name: 'wallet',
+    component: () => import('@/views/WalletView.vue'),
+    meta: { title: 'Касса компании', perm: 'wallet' },
+  },
+  {
+    path: '/transfers',
+    name: 'transfers',
+    component: () => import('@/views/MoneyTransfersView.vue'),
+    meta: { title: 'Переводы', perm: 'wallet' },
+  },
+  {
+    path: '/transfers/new',
+    name: 'transfer-new',
+    component: () => import('@/views/MoneyTransferFormView.vue'),
+    meta: { title: 'Новый перевод', perm: 'wallet' },
+  },
+  {
+    path: '/transfers/:id/edit',
+    name: 'transfer-edit',
+    component: () => import('@/views/MoneyTransferFormView.vue'),
+    meta: { title: 'Перевод', perm: 'wallet' },
   },
   {
     path: '/reports/sales',

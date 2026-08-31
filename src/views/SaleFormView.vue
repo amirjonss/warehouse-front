@@ -339,10 +339,17 @@ const takesCash = computed(
 
 const cashBlocked = computed(() => noSession.value && takesCash.value)
 
-const canPost = computed(() => items.value.length > 0 && !posting.value && !cashBlocked.value)
+/**
+ * Валютного счёта у компании нет: доллары принимаются только наличными, картой и
+ * переводом — никогда. Бэкенд это отвергает, но уже после проводки продажи, и она
+ * молча превратилась бы в долг — поэтому ловим здесь.
+ */
+const usdNotCash = computed(() => totals.value.USD > 0 && paymentMode.value === 'now' && payNow.USD.method !== 'cash')
+
+const canPost = computed(() => items.value.length > 0 && !posting.value && !cashBlocked.value && !usdNotCash.value)
 
 async function post() {
-  if (!draft.value || items.value.length === 0 || cashBlocked.value) return
+  if (!draft.value || items.value.length === 0 || cashBlocked.value || usdNotCash.value) return
   posting.value = true
   error.value = ''
   try {
@@ -736,11 +743,14 @@ async function post() {
                         <label class="label">Способ</label>
                         <select v-model="payNow[c].method" class="input">
                           <option value="cash">Наличные</option>
-                          <option value="card">Карта</option>
-                          <option value="transfer">Перевод</option>
+                          <option value="card" :disabled="c === 'USD'">Карта</option>
+                          <option value="transfer" :disabled="c === 'USD'">Перевод</option>
                         </select>
                       </div>
                     </div>
+                    <p v-if="c === 'USD'" class="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                      Доллары принимаются только наличными — валютного счёта нет.
+                    </p>
                   </div>
                 </template>
               </div>
@@ -786,6 +796,9 @@ async function post() {
       </div>
       <p v-if="cashBlocked" class="text-center text-xs text-amber-600 dark:text-amber-400">
         Смена не открыта — наличные принять нельзя
+      </p>
+      <p v-else-if="usdNotCash" class="text-center text-xs text-amber-600 dark:text-amber-400">
+        Доллары принимаются только наличными
       </p>
       <button
         class="btn-primary w-full"

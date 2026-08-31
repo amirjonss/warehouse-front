@@ -6,7 +6,7 @@ import StatCard from '@/components/StatCard.vue'
 import { date, dualLabel, money, pluralRu, toISODate, addDays } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
-import { cashOnHands, clientDebtSummary, expenseDaily, expenseSummary, productStockSummary, productTopSales, sales } from '@/api/resources'
+import { cashOnHands, clientDebtSummary, expenseDaily, expenseSummary, productStockSummary, productTopSales, sales, suppliers, walletSummary } from '@/api/resources'
 
 const auth = useAuthStore()
 
@@ -28,6 +28,8 @@ const stockSummary = ref({ positions: 0, low: 0, outOfStock: 0 })
 const debtSummary = ref({ count: 0, totalDebtUsd: '0', totalDebtUzs: '0' })
 const expenseToday = ref({ totalUsd: '0', totalUzs: '0' })
 const onHands = ref({ balanceUsd: '0', balanceUzs: '0', unconfirmedUsd: '0', unconfirmedUzs: '0', openSessions: 0 })
+const wallet = ref({ totalUsd: '0', totalUzs: '0', accounts: [] })
+const supplierDebt = ref({ count: 0, usd: 0, uzs: 0 })
 const topProducts = ref([])
 
 async function loadSalesPeriod() {
@@ -70,6 +72,31 @@ async function load() {
     if (auth.can('cash.admin')) {
       calls.push(cashOnHands().then((s) => (onHands.value = s)))
     }
+    if (auth.can('wallet')) {
+      calls.push(
+        walletSummary()
+          .then((s) => (wallet.value = s))
+          .catch((e) => {
+            error.value = e.message
+          }),
+      )
+    }
+    if (auth.can('supplierDebts')) {
+      calls.push(
+        suppliers
+          .list({ hasDebt: true })
+          .then((list) => {
+            supplierDebt.value = {
+              count: list.length,
+              usd: list.reduce((sum, x) => sum + (Number(x.debtUsd) || 0), 0),
+              uzs: list.reduce((sum, x) => sum + (Number(x.debtUzs) || 0), 0),
+            }
+          })
+          .catch((e) => {
+            error.value = e.message
+          }),
+      )
+    }
     await Promise.all(calls)
   } catch (e) {
     error.value = e.message
@@ -106,6 +133,8 @@ const onHandsLabel = computed(() =>
     Number(onHands.value.balanceUzs) + Number(onHands.value.unconfirmedUzs),
   ),
 )
+const walletLabel = computed(() => dualLabel(wallet.value.totalUsd, wallet.value.totalUzs))
+const supplierDebtLabel = computed(() => dualLabel(supplierDebt.value.usd, supplierDebt.value.uzs))
 
 const chartData = computed(() => {
   const out = []
@@ -171,6 +200,25 @@ const expenseChartData = computed(() => {
         icon="money"
         tone="slate"
         to="/cash-sessions"
+      />
+      <StatCard
+        v-if="auth.can('wallet')"
+        label="Касса компании"
+        :value="walletLabel.primary"
+        :sub-value="walletLabel.secondary"
+        icon="safe"
+        tone="green"
+        to="/wallet"
+      />
+      <StatCard
+        v-if="auth.can('supplierDebts')"
+        label="Долг поставщикам"
+        :value="supplierDebtLabel.primary"
+        :sub-value="supplierDebtLabel.secondary"
+        :hint="supplierDebt.count ? `${supplierDebt.count} поставщиков` : ''"
+        icon="truck"
+        tone="amber"
+        to="/supplier-debts"
       />
       <StatCard label="Позиций без остатка" :value="stockSummary.outOfStock" icon="boxes" tone="red" to="/stock" />
     </div>

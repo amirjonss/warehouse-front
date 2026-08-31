@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -24,6 +24,13 @@ const error = ref('')
 const loadingClient = ref(true)
 
 const header = reactive({ amount: '', currency: 'UZS', method: 'cash', docDate: toISODate() })
+/** Долларов нет на карте и в банке — бэк принимает USD только наличными. */
+watch(
+  () => header.currency,
+  (c) => {
+    if (c === 'USD' && header.method !== 'cash') header.method = 'cash'
+  },
+)
 /** Есть ли у текущего сотрудника открытая смена — от этого зависит приём наличных. */
 const hasOpenSession = ref(false)
 const draft = ref(null)
@@ -351,8 +358,14 @@ async function autoAllocate() {
             <div>
               <label class="label">Способ оплаты</label>
               <select v-model="header.method" class="input" :disabled="!!draft">
-                <option v-for="(label, key) in METHOD" :key="key" :value="key">{{ label }}</option>
+                <option v-for="(label, key) in METHOD" :key="key" :value="key" :disabled="header.currency === 'USD' && key !== 'cash'">{{ label }}</option>
               </select>
+              <p
+                v-if="header.currency === 'USD'"
+                class="mt-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+              >
+                Доллары принимаются только наличными — валютного счёта нет.
+              </p>
               <p
                 v-if="header.method === 'cash' && !hasOpenSession"
                 class="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"

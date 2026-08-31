@@ -23,6 +23,12 @@ export const users = createResource('/users')
 export const expenses = createResource('/expenses')
 export const cashSessions = createResource('/cash_sessions')
 export const cashEntries = createResource('/cash_entries')
+export const cashAccounts = createResource('/cash_accounts')
+export const accountEntries = createResource('/account_entries')
+export const moneyTransfers = createResource('/money_transfers')
+export const supplierPayments = createResource('/supplier_payments')
+export const supplierPaymentAllocations = createResource('/supplier_payment_allocations')
+export const supplierDebts = createResource('/supplier_debts')
 
 export const productStockSummary = () => api.post('/products/summary')
 export const productTopSales = (params) => api.post('/products/top-sales', undefined, params)
@@ -45,6 +51,16 @@ export const changeUserPassword = (id, payload) => api.patch(`/users/${id}/passw
 
 /** Автораспределение: раскидывает черновик платежа по непогашенным продажам клиента (в валюте платежа, от старых к новым) и сразу проводит. */
 export const autoAllocatePayment = (id) => api.post(`/payments/${id}/auto_allocate`)
+
+/** Касса компании (не путать со сменой продавца): наличные в сейфе, карта, банк. */
+export const walletSummary = () => api.post('/cash_accounts/summary')
+/** Начальный остаток счёта — один раз. Повторно задать нельзя. */
+export const setOpeningBalance = (id, payload) => api.post(`/cash_accounts/${id}/opening_balance`, payload)
+
+export const changeMoneyTransferStatus = (id, status) => changeStatus('/money_transfers', id, status)
+export const changeSupplierPaymentStatus = (id, status) => changeStatus('/supplier_payments', id, status)
+/** Автораспределение: раскидывает черновик по неоплаченным приходам поставщика (в валюте платежа, от старых к новым) и сразу проводит. */
+export const autoAllocateSupplierPayment = (id) => api.post(`/supplier_payments/${id}/auto_allocate`)
 
 /* Касса продавца (подотчёт). */
 

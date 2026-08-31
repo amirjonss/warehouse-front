@@ -7,12 +7,13 @@ import EmptyState from '@/components/EmptyState.vue'
 import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, qty, rateFmt, rawPrice, userName } from '@/utils/format'
+import { date, dualMoney, money, qty, rateFmt, rawPrice, userName } from '@/utils/format'
 import { useDebouncedValue } from '@/composables/useDebouncedValue'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
 import { api } from '@/api/client'
+import { idFromIri } from '@/api/iri'
 import { changeReceiptStatus, receipts, suppliers } from '@/api/resources'
 
 const route = useRoute()
@@ -54,10 +55,7 @@ async function loadPage(p) {
   try {
     const params = { page: p, itemsPerPage: pageSize, 'order[docDate]': 'desc' }
     if (searchQuery.value) params.number = searchQuery.value
-    if (supplierFilter.value) {
-      const s = supplierList.value.find((x) => String(x.id) === String(supplierFilter.value))
-      if (s) params['supplier.name'] = s.name
-    }
+    if (supplierFilter.value) params.supplier = supplierFilter.value
     if (from.value) params['docDate[strictly_after]'] = dayBefore(from.value)
     if (to.value) params['docDate[strictly_before]'] = dayAfter(to.value)
     const { items, totalItems: total } = await api.getPage('/receipts', params)
@@ -96,6 +94,23 @@ const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageS
 
 /** supplier приходит вложенным объектом с готовым .name — отдельный поиск по справочнику не нужен. */
 const supplierName = (r) => r.supplier?.name ?? '—'
+const supplierId = (r) => idFromIri(r.supplier)
+
+function remaining(r) {
+  return { usd: Number(r.outstandingUsd) || 0, uzs: Number(r.outstandingUzs) || 0 }
+}
+function hasOutstanding(r) {
+  return remaining(r).usd > 0.004 || remaining(r).uzs > 0.004
+}
+function outstandingLabel(r) {
+  if (r.outstandingUsd == null && r.outstandingUzs == null) return '—'
+  return hasOutstanding(r) ? dualMoney(r.outstandingUsd, r.outstandingUzs) : 'оплачен'
+}
+/** Если по приходу уже что-то оплатили поставщику, бэк не даст его отменить. */
+function isPaidToward(r) {
+  if (r.outstandingUsd == null && r.outstandingUzs == null) return false
+  return Number(r.totalUsd) - Number(r.outstandingUsd) > 0.004 || Number(r.totalUzs) - Number(r.outstandingUzs) > 0.004
+}
 
 /** Черновик открывается на редактирование, проведённый/отменённый — в режиме просмотра. */
 async function openReceipt(r) {
@@ -214,10 +229,15 @@ async function removeDraft(r) {
               </button>
             </div>
           </div>
-          <div class="mt-2 tabnum text-sm text-slate-700 dark:text-slate-300">
-            <template v-if="Number(r.totalUsd) > 0">{{ money(r.totalUsd, 'USD') }}</template>
-            <template v-if="Number(r.totalUsd) > 0 && Number(r.totalUzs) > 0"> + </template>
-            <template v-if="Number(r.totalUzs) > 0">{{ money(r.totalUzs, 'UZS') }}</template>
+          <div class="mt-2 flex items-center justify-between text-sm">
+            <span class="tabnum text-slate-700 dark:text-slate-300">{{ dualMoney(r.totalUsd, r.totalUzs) }}</span>
+            <span
+              v-if="r.status === 'posted'"
+              class="tabnum"
+              :class="hasOutstanding(r) ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'"
+            >
+              {{ outstandingLabel(r) }}
+            </span>
           </div>
         </div>
       </div>
@@ -230,6 +250,7 @@ async function removeDraft(r) {
             <th class="th">Поставщик</th>
             <th class="th">Сотрудник</th>
             <th class="th">Сумма</th>
+            <th class="th">К оплате</th>
             <th class="th">Статус</th>
             <th class="th"></th>
           </tr>
@@ -240,10 +261,13 @@ async function removeDraft(r) {
             <td class="td text-slate-500 dark:text-slate-400">{{ date(r.docDate) }}</td>
             <td class="td text-slate-600 dark:text-slate-400">{{ supplierName(r) }}</td>
             <td class="td text-slate-500 dark:text-slate-400">{{ userName(r.receivedBy) }}</td>
-            <td class="td tabnum">
-              <template v-if="Number(r.totalUsd) > 0">{{ money(r.totalUsd, 'USD') }}</template>
-              <template v-if="Number(r.totalUsd) > 0 && Number(r.totalUzs) > 0"> + </template>
-              <template v-if="Number(r.totalUzs) > 0">{{ money(r.totalUzs, 'UZS') }}</template>
+            <td class="td tabnum">{{ dualMoney(r.totalUsd, r.totalUzs) }}</td>
+            <td
+              class="td tabnum"
+              :class="hasOutstanding(r) ? 'text-amber-600 dark:text-amber-400' : r.status === 'posted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'"
+            >
+              <template v-if="r.status === 'posted'">{{ outstandingLabel(r) }}</template>
+              <template v-else>—</template>
             </td>
             <td class="td"><span class="badge" :class="STATUS[r.status].cls">{{ STATUS[r.status].label }}</span></td>
             <td class="td text-right">
@@ -271,6 +295,15 @@ async function removeDraft(r) {
     </div>
 
     <ModalDialog v-if="opened" :title="opened.number" :subtitle="date(opened.docDate) + ' · ' + supplierName(opened)" width="max-w-2xl" @close="opened = null">
+      <div
+        v-if="opened.status === 'posted'"
+        class="mb-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800"
+      >
+        <span class="text-slate-500 dark:text-slate-400">К оплате</span>
+        <span class="tabnum font-semibold" :class="hasOutstanding(opened) ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'">
+          {{ outstandingLabel(opened) }}
+        </span>
+      </div>
       <div class="divide-y divide-slate-200 sm:hidden dark:divide-slate-800">
         <div v-for="i in opened.items ?? []" :key="i.id" class="py-2">
           <div class="flex items-start justify-between gap-2">
@@ -303,8 +336,15 @@ async function removeDraft(r) {
       </table>
       <template #footer>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
+        <RouterLink
+          v-if="opened.status === 'posted' && hasOutstanding(opened) && auth.can('supplierPayments.create') && supplierId(opened)"
+          :to="`/suppliers/${supplierId(opened)}/payment/new?receipt=${opened.id}`"
+          class="btn-primary"
+        >
+          Оплатить
+        </RouterLink>
         <button
-          v-if="opened.status === 'posted' && auth.can('receipts.create')"
+          v-if="opened.status === 'posted' && auth.can('receipts.create') && !isPaidToward(opened)"
           class="btn-danger"
           :disabled="cancelling"
           @click="cancelReceipt(opened)"
