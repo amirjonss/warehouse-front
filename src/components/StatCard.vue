@@ -59,7 +59,7 @@ const TONES = {
       <div
         v-if="hint"
         class="mt-0.5 text-slate-400 dark:text-slate-500"
-        :class="compact ? 'text-[11px] leading-tight' : 'truncate text-xs'"
+        :class="compact ? 'text-[11px] leading-tight' : 'text-xs sm:truncate'"
       >
         {{ hint }}
       </div>

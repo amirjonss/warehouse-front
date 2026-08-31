@@ -176,7 +176,8 @@ async function saveClose() {
               {{ s.number }} · открыта {{ dateTime(s.openedAt) }}
             </div>
           </div>
-          <div class="text-right">
+          <!-- На телефоне блок переносится на свою строку — там выравнивание по левому краю -->
+          <div class="text-left sm:text-right">
             <div class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ oweLabel(s).primary }}</div>
             <div v-if="oweLabel(s).secondary" class="tabnum text-xs text-slate-500 dark:text-slate-400">
               {{ oweLabel(s).secondary }}
