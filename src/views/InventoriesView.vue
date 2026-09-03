@@ -7,7 +7,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import Spinner from '@/components/Spinner.vue'
 import ModalDialog from '@/components/ModalDialog.vue'
 import Pagination from '@/components/Pagination.vue'
-import { date, money, qty, userName } from '@/utils/format'
+import { date, qty, userName } from '@/utils/format'
 import { dayAfter, dayBefore, useDateRangeFilter } from '@/composables/useDateRangeFilter'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirmStore } from '@/stores/confirm'
@@ -37,7 +37,7 @@ const pageSize = 20
 const pageItems = ref([])
 const totalItems = ref(0)
 
-/** Inventory отдаёт items с вложенными product.name и batch.number (inventories:read) — отдельных запросов не нужно. */
+/** Inventory отдаёт items с вложенным product.name (inventories:read) — отдельных запросов не нужно. */
 async function loadPage(p) {
   loading.value = true
   error.value = ''
@@ -75,7 +75,6 @@ onMounted(async () => {
 const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / pageSize)))
 
 const productName = (v) => v?.name ?? '—'
-const batchNumber = (v) => v?.number ?? '—'
 const scopeLabel = (i) => i.category?.name ?? 'весь склад'
 
 /** Строк с расхождением — то, ради чего документ и открывают. */
@@ -89,20 +88,6 @@ function diffClass(diffQty) {
   return 'text-slate-400 dark:text-slate-500'
 }
 const diffText = (diffQty) => (Number(diffQty ?? 0) > 0 ? '+' : '') + qty(diffQty ?? 0)
-
-/** Стоимость расхождения по закупочной цене партии. Продавцу purchasePrice не отдаётся. */
-function diffValue(item) {
-  return item.batch ? Number(item.diffQty ?? 0) * Number(item.batch.purchasePrice ?? 0) : 0
-}
-/** Партии бывают в разных валютах — итог отдельно по USD и UZS, суммировать их нельзя. */
-const totalDiffText = computed(() => {
-  const acc = { USD: 0, UZS: 0 }
-  for (const i of opened.value?.items ?? []) acc[i.batch?.currency ?? 'UZS'] += diffValue(i)
-  const parts = []
-  if (acc.USD !== 0) parts.push(money(acc.USD, 'USD'))
-  if (acc.UZS !== 0) parts.push(money(acc.UZS, 'UZS'))
-  return parts.length ? parts.join(' + ') : money(0)
-})
 
 /** Черновик открывается на ввод факта, проведённое/отменённое — в режиме просмотра. */
 function open(i) {
@@ -236,7 +221,7 @@ async function cancelInventory(i) {
             <div class="tabnum shrink-0 font-semibold" :class="diffClass(i.diffQty)">{{ diffText(i.diffQty) }}</div>
           </div>
           <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            {{ batchNumber(i.batch) }} · по учёту {{ qty(i.expectedQty) }} · факт {{ qty(i.actualQty ?? 0) }}
+            по учёту {{ qty(i.expectedQty) }} · факт {{ qty(i.actualQty ?? 0) }}
           </div>
         </div>
       </div>
@@ -245,37 +230,21 @@ async function cancelInventory(i) {
         <thead>
           <tr class="text-left text-xs text-slate-500 dark:text-slate-400">
             <th class="py-1.5 pr-3">Товар</th>
-            <th class="px-3 py-1.5">Партия</th>
             <th class="px-3 py-1.5 text-right">По учёту</th>
             <th class="px-3 py-1.5 text-right">Факт</th>
-            <th class="px-3 py-1.5 text-right">Расхождение</th>
-            <th v-if="auth.can('prices.purchase')" class="py-1.5 pl-3 text-right">Сумма</th>
+            <th class="py-1.5 pl-3 text-right">Расхождение</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="i in opened.items ?? []" :key="i.id" class="border-t border-slate-200 dark:border-slate-800">
             <td class="py-1.5 pr-3">{{ productName(i.product) }}</td>
-            <td class="px-3 py-1.5 whitespace-nowrap">{{ batchNumber(i.batch) }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap text-slate-500 dark:text-slate-400">{{ qty(i.expectedQty) }}</td>
             <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap">{{ qty(i.actualQty ?? 0) }}</td>
-            <td class="tabnum px-3 py-1.5 text-right whitespace-nowrap font-semibold" :class="diffClass(i.diffQty)">{{ diffText(i.diffQty) }}</td>
-            <td v-if="auth.can('prices.purchase')" class="tabnum py-1.5 pl-3 text-right whitespace-nowrap" :class="diffClass(i.diffQty)">
-              {{ money(diffValue(i), i.batch?.currency) }}
-            </td>
+            <td class="tabnum py-1.5 pl-3 text-right whitespace-nowrap font-semibold" :class="diffClass(i.diffQty)">{{ diffText(i.diffQty) }}</td>
           </tr>
         </tbody>
-        <tfoot v-if="auth.can('prices.purchase')">
-          <tr class="border-t border-slate-200 dark:border-slate-800">
-            <td class="py-2 pr-3 text-slate-500 dark:text-slate-400" colspan="5">Расхождение на сумму</td>
-            <td class="tabnum py-2 pl-3 text-right whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">{{ totalDiffText }}</td>
-          </tr>
-        </tfoot>
       </table>
 
-      <div v-if="auth.can('prices.purchase')" class="mt-3 flex items-center justify-between text-sm sm:hidden">
-        <span class="text-slate-500 dark:text-slate-400">Расхождение на сумму</span>
-        <span class="tabnum font-semibold text-slate-800 dark:text-slate-100">{{ totalDiffText }}</span>
-      </div>
       <template #footer>
         <button class="btn-ghost" @click="opened = null">Закрыть</button>
         <button

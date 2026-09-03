@@ -6,7 +6,6 @@ import EmptyState from '@/components/EmptyState.vue'
 import ProductCombobox from '@/components/ProductCombobox.vue'
 import { qty, toISODate } from '@/utils/format'
 import {
-  batches,
   categories,
   changeInventoryStatus,
   fillInventory,
@@ -33,9 +32,7 @@ const posting = ref(false)
 
 const categoryOptions = ref([])
 const selectedProduct = ref(null)
-const batchOptions = ref([])
-const loadingBatches = ref(false)
-const line = reactive({ productId: '', batchId: '' })
+const line = reactive({ productId: '' })
 
 onMounted(async () => {
   try {
@@ -80,7 +77,7 @@ async function ensureDraft() {
 }
 
 /**
- * Массовое заполнение: бэкенд сам добирает партии с остатком и снимает учётный остаток
+ * Массовое заполнение: бэкенд сам добирает товары с остатком и снимает учётное количество
  * на этот момент. Уже введённый факт не затирается, поэтому кнопку можно жать повторно —
  * например, после того как посчитали одну категорию и перешли к следующей.
  */
@@ -94,7 +91,7 @@ async function fill() {
       includeZeroStock: false,
     })
     items.value = filled.items ?? []
-    if (items.value.length === 0) toast.success('Партий с остатком не нашлось')
+    if (items.value.length === 0) toast.success('Товаров с остатком не нашлось')
   } catch (e) {
     error.value = e.message
   } finally {
@@ -102,34 +99,11 @@ async function fill() {
   }
 }
 
-/**
- * Партии выбранного товара. В отличие от списания пустые партии не отбрасываем: найденный
- * товар, которого по учёту нет, записать можно только на партию с нулевым остатком.
- */
-async function onProductSelect(p) {
-  selectedProduct.value = p
-  line.batchId = ''
-  batchOptions.value = []
-  loadingBatches.value = true
-  try {
-    const found = await batches.list({ 'product.name': p.name })
-    batchOptions.value = found
-      .filter((b) => b.product?.name === p.name)
-      .map((b) => ({ ...b, stock: Number(b.remainingQty) }))
-  } catch {
-    batchOptions.value = []
-  } finally {
-    loadingBatches.value = false
-  }
-}
-
-/** Одна партия — одна строка (уникальность inventory+batch), уже добавленные убираем из выбора. */
-const usedBatchIds = computed(() => new Set(items.value.map((i) => String(idFromIri(i.batch)))))
-const availableBatches = computed(() => batchOptions.value.filter((b) => !usedBatchIds.value.has(String(b.id))))
-const selectedBatch = computed(() => batchOptions.value.find((b) => String(b.id) === String(line.batchId)))
+/** Один товар — одна строка; уже добавленные убираем из подсказок комбобокса. */
+const usedProductIds = computed(() => items.value.map((i) => String(idFromIri(i.product))))
 
 async function addItem() {
-  if (!selectedBatch.value) return
+  if (!line.productId) return
   addingItem.value = true
   error.value = ''
   try {
@@ -137,15 +111,12 @@ async function addItem() {
     const created = await inventoryItems.create({
       inventory: iri('inventories', inventory.id),
       product: iri('products', line.productId),
-      batch: iri('batches', selectedBatch.value.id),
       actualQty: null,
     })
-    items.value.push({ ...created, product: selectedProduct.value, batch: selectedBatch.value })
+    items.value.push({ ...created, product: selectedProduct.value })
 
     line.productId = ''
-    line.batchId = ''
     selectedProduct.value = null
-    batchOptions.value = []
   } catch (e) {
     error.value = e.message
   } finally {
@@ -181,7 +152,6 @@ async function removeItem(item) {
 }
 
 const productName = (v) => v?.name ?? '—'
-const batchNumber = (v) => v?.number ?? '—'
 
 const diffOf = (item) => (item.actualQty === null || item.actualQty === undefined ? null : Number(item.actualQty) - Number(item.expectedQty))
 function diffClass(item) {
@@ -225,43 +195,19 @@ async function post() {
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_336px]">
       <div class="order-2 flex min-w-0 flex-col gap-6 xl:order-1 xl:min-h-[calc(100vh-7rem)]">
         <section class="card-pad shrink-0 rounded-2xl p-6 shadow-sm dark:shadow-lg dark:shadow-black/20">
-          <h2 class="mb-5 text-sm font-semibold text-slate-800 dark:text-slate-100">Добавить партию вручную</h2>
+          <h2 class="mb-5 text-sm font-semibold text-slate-800 dark:text-slate-100">Добавить товар вручную</h2>
 
-          <div class="space-y-3 xl:hidden">
-            <div>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div class="min-w-0 flex-1">
               <label class="label">Товар</label>
-              <ProductCombobox v-model="line.productId" @select="onProductSelect" />
-            </div>
-            <div>
-              <label class="label">Партия</label>
-              <select v-model="line.batchId" class="input" :disabled="!line.productId || loadingBatches">
-                <option value="" disabled>{{ loadingBatches ? 'Загрузка…' : 'Выберите' }}</option>
-                <option v-for="b in availableBatches" :key="b.id" :value="String(b.id)">
-                  {{ b.number }} (по учёту {{ b.stock }})
-                </option>
-              </select>
-            </div>
-            <button class="btn-primary w-full" :disabled="!selectedBatch || addingItem" @click="addItem">
-              <AppIcon name="plus" :size="16" /> Добавить
-            </button>
-          </div>
-
-          <div class="hidden items-end gap-3 xl:flex xl:flex-wrap">
-            <div class="min-w-[180px] flex-1 basis-[220px]">
-              <label class="label">Товар</label>
-              <ProductCombobox v-model="line.productId" @select="onProductSelect" />
-            </div>
-            <div class="min-w-[160px] flex-1 basis-[200px]">
-              <label class="label">Партия</label>
-              <select v-model="line.batchId" class="input" :disabled="!line.productId || loadingBatches">
-                <option value="" disabled>{{ loadingBatches ? 'Загрузка…' : 'Выберите' }}</option>
-                <option v-for="b in availableBatches" :key="b.id" :value="String(b.id)">
-                  {{ b.number }} (по учёту {{ b.stock }})
-                </option>
-              </select>
+              <ProductCombobox
+                v-model="line.productId"
+                :exclude-ids="usedProductIds"
+                @select="selectedProduct = $event"
+              />
             </div>
             <div class="shrink-0">
-              <button class="btn-primary" :disabled="!selectedBatch || addingItem" @click="addItem">
+              <button class="btn-primary w-full sm:w-auto" :disabled="!line.productId || addingItem" @click="addItem">
                 <AppIcon name="plus" :size="16" /> Добавить
               </button>
             </div>
@@ -274,9 +220,7 @@ async function post() {
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <div class="truncate font-medium text-slate-800 dark:text-slate-100">{{ productName(i.product) }}</div>
-                  <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    {{ batchNumber(i.batch) }} · по учёту {{ qty(i.expectedQty) }}
-                  </div>
+                  <div class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">по учёту {{ qty(i.expectedQty) }}</div>
                 </div>
                 <button class="btn-ghost btn-sm shrink-0" @click="removeItem(i)"><AppIcon name="trash" :size="14" /></button>
               </div>
@@ -296,11 +240,10 @@ async function post() {
           </div>
 
           <div v-if="items.length" class="hidden overflow-x-auto sm:block">
-            <table class="w-full min-w-[620px]">
+            <table class="w-full min-w-[520px]">
               <thead>
                 <tr>
                   <th class="th">Товар</th>
-                  <th class="th">Партия</th>
                   <th class="th">По учёту</th>
                   <th class="th">Факт</th>
                   <th class="th">Расхождение</th>
@@ -310,7 +253,6 @@ async function post() {
               <tbody>
                 <tr v-for="i in items" :key="i.id" class="table-row">
                   <td class="td">{{ productName(i.product) }}</td>
-                  <td class="td text-slate-500 dark:text-slate-400">{{ batchNumber(i.batch) }}</td>
                   <td class="td tabnum text-slate-500 dark:text-slate-400">{{ qty(i.expectedQty) }}</td>
                   <td class="td">
                     <input
@@ -332,7 +274,7 @@ async function post() {
             </table>
           </div>
           <div v-else class="flex flex-1 items-center justify-center">
-            <EmptyState icon="check" title="Строк пока нет" text="Заполните по остаткам или добавьте партии вручную" />
+            <EmptyState icon="check" title="Строк пока нет" text="Заполните по остаткам или добавьте товары вручную" />
           </div>
         </section>
       </div>
