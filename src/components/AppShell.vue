@@ -45,6 +45,7 @@ const NAV = [
       { to: '/categories', icon: 'tag', label: 'Категории', perm: 'categories' },
       { to: '/receipts', icon: 'receipt', label: 'Приход', perm: 'receipts' },
       { to: '/writeoffs', icon: 'trash', label: 'Списания', perm: 'writeoffs' },
+      { to: '/inventories', icon: 'check', label: 'Инвентаризация', perm: 'inventories' },
       { to: '/suppliers', icon: 'truck', label: 'Поставщики', perm: 'suppliers' },
       { to: '/movements', icon: 'list', label: 'Журнал движений', perm: 'movements' },
     ],

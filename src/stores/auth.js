@@ -21,6 +21,9 @@ const PERMISSIONS = {
     'sales.create',
     'writeoffs',
     'writeoffs.create',
+    'inventories',
+    'inventories.create',
+    'inventories.post',
     'suppliers',
     'suppliers.edit',
     'clients',
@@ -52,6 +55,11 @@ const PERMISSIONS = {
     'debts',
     'payments.create',
     'expenses',
+    // Считает продавец, проводит владелец. Партии продавцу видны (без закупочной цены —
+    // её прячет бэкенд), иначе пересчитывать нечего.
+    'batches',
+    'inventories',
+    'inventories.create',
     // Свою кассу продавец видит и ведёт; чужие смены и закрытие — только админ.
     'cash',
   ],

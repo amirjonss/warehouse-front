@@ -16,6 +16,8 @@ export const payments = createResource('/payments')
 export const paymentAllocations = createResource('/payment_allocations')
 export const writeoffs = createResource('/writeoffs')
 export const writeoffItems = createResource('/writeoff_items')
+export const inventories = createResource('/inventories')
+export const inventoryItems = createResource('/inventory_items')
 export const stockMovements = createResource('/stock_movements')
 export const profits = createResource('/profits')
 export const debts = createResource('/debts')
@@ -46,6 +48,10 @@ export const changeReceiptStatus = (id, status) => changeStatus('/receipts', id,
 export const changeSaleStatus = (id, status) => changeStatus('/sales', id, status)
 export const changeWriteoffStatus = (id, status) => changeStatus('/writeoffs', id, status)
 export const changePaymentStatus = (id, status) => changeStatus('/payments', id, status)
+/** Пересчёт проводит владелец, а не тот, кто считал. */
+export const changeInventoryStatus = (id, status) => changeStatus('/inventories', id, status)
+/** Заполняет черновик всеми партиями с остатком — по категории или по всему складу. */
+export const fillInventory = (id, payload) => api.post(`/inventories/${id}/fill`, payload)
 
 export const changeUserPassword = (id, payload) => api.patch(`/users/${id}/password`, payload)
 

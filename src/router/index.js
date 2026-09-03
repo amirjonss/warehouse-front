@@ -99,6 +99,24 @@ const routes = [
     meta: { title: 'Списание', perm: 'writeoffs.create' },
   },
   {
+    path: '/inventories',
+    name: 'inventories',
+    component: () => import('@/views/InventoriesView.vue'),
+    meta: { title: 'Инвентаризация', perm: 'inventories' },
+  },
+  {
+    path: '/inventories/new',
+    name: 'inventory-new',
+    component: () => import('@/views/InventoryFormView.vue'),
+    meta: { title: 'Новая инвентаризация', perm: 'inventories.create' },
+  },
+  {
+    path: '/inventories/:id/edit',
+    name: 'inventory-edit',
+    component: () => import('@/views/InventoryFormView.vue'),
+    meta: { title: 'Инвентаризация', perm: 'inventories.create' },
+  },
+  {
     path: '/clients',
     name: 'clients',
     component: () => import('@/views/ClientsView.vue'),
