@@ -27,6 +27,12 @@ async function submit() {
     loading.value = false
   }
 }
+
+function quickLogin(loginEmail, loginPassword) {
+  email.value = loginEmail
+  password.value = loginPassword
+  submit()
+}
 </script>
 
 <template>
@@ -63,6 +69,31 @@ async function submit() {
         <button type="submit" class="btn-primary mt-4 w-full" :disabled="loading">
           {{ loading ? 'Входим…' : 'Войти' }}
         </button>
+
+        <div class="mt-4 flex items-center gap-2">
+          <div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+          <span class="text-xs text-slate-400 dark:text-slate-500">или быстрый вход</span>
+          <div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="btn-ghost w-full"
+            :disabled="loading"
+            @click="quickLogin('admin@example.com', 'passwd')"
+          >
+            Админ
+          </button>
+          <button
+            type="button"
+            class="btn-ghost w-full"
+            :disabled="loading"
+            @click="quickLogin('user@example.com', 'passwd')"
+          >
+            Продавец
+          </button>
+        </div>
       </form>
 
       <p class="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
